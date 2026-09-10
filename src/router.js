@@ -3,20 +3,18 @@ import {$} from './helpers.js';
 import {state,LEADS,REPS} from './state.js';
 import {renderDash} from './dashboard.js';
 import {renderCRM} from './crm.js';
-import {renderAreas} from './maps.js';
 import {renderFinder} from './finder.js';
 import {renderCal} from './calendar.js';
-import {renderRoutes} from './routes.js';
 import {renderReps} from './reps.js';
 
 export function go(view){
   state.view=view;
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.dataset.view===view));
   document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('active',a.dataset.view===view));
-  $('#crumb').textContent={dashboard:'Dashboard',crm:'CRM',areas:'Map',finder:'Lead Finder',calendar:'Calendar',routes:'Routes',reps:'Sales Reps'}[view];
+  $('#crumb').textContent={dashboard:'Dashboard',crm:'CRM',finder:'Lead Finder',calendar:'Calendar',reps:'Sales Reps'}[view];
   render(view);
 }
-export function render(view){({dashboard:renderDash,crm:renderCRM,areas:renderAreas,finder:renderFinder,calendar:renderCal,routes:renderRoutes,reps:renderReps}[view])();updateBadges();}
+export function render(view){({dashboard:renderDash,crm:renderCRM,finder:renderFinder,calendar:renderCal,reps:renderReps}[view])();updateBadges();}
 export function updateBadges(){$('#nb-crm').textContent=LEADS.length;}
 
 export function renderRepFilter(){

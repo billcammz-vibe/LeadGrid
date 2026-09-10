@@ -163,7 +163,7 @@ export function placeToBusiness(p,queryCat){
   return b;
 }
 
-/* ---- map popup building blocks (shared by maps.js) ---- */
+/* ---- contact/detail row building blocks (for the lead drawer) ---- */
 export function contactRow(icon,key,val,href){
   const v=val?(href?`<a href="${href}" target="_blank" rel="noopener">${val} ${ic('ext','#4D9FFF',12)}</a>`:val):`<span class="v miss">Not listed</span>`;
   return `<div class="crow"><span class="ci">${ic(icon,'#4D9FFF',15)}</span><div class="cc"><div class="k">${key}</div><div class="v">${val?v:'<span class="miss">Not listed</span>'}</div></div></div>`;

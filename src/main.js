@@ -6,14 +6,12 @@ import {ic} from './icons.js';
 import {state,LEADS,REPS,EVENTS,setCurrentUserName} from './state.js';
 import {sb} from './sb.js';
 import {setCrmView,setCrmFilter} from './state.js';
-import {loadAllData,addProspectToCRM,reEnrich,setStage,deleteLead} from './data.js';
+import {loadAllData,reEnrich,setStage,deleteLead} from './data.js';
 import {go,render,updateBadges,renderRepFilter} from './router.js';
 import {renderCRM} from './crm.js';
 import {renderCal} from './calendar.js';
-import {renderRoutes,panRouteTo,getRouteMap} from './routes.js';
-import {map,nudgeMap,drawMarkers,searchMapArea,toggleMapSearchPanel,toggleColorScheme,submitGoogleCreds,setMapNoWebOnly,showBizPanel} from './maps.js';
 import {runFinder,addFromFinder,setFinderCat,setFinderGap,setFinderSort,renderAreaSuggest,pickArea,hideAreaSuggest} from './finder.js';
-import {openLead,closeDrawer,openConfirm,closeConfirm,doConfirm,askDeleteLead,addToRoute,viewLeadOnMap} from './drawer.js';
+import {openLead,closeDrawer,openConfirm,closeConfirm,doConfirm,askDeleteLead} from './drawer.js';
 import {regenAI,sendGmail,sendDefault,copyEmail} from './outreach.js';
 import {openMeetingModal,onMeetLeadChange,closeMeetingModal,saveMeetingModal,askDeleteMeeting} from './calendar.js';
 import {openRepModal,closeRepModal,saveRepModal,deleteRepFromModal} from './reps.js';
@@ -21,8 +19,7 @@ import {openAI,closeAI,aiSend} from './assistant.js';
 
 /* ---- sidebar collapse (desktop) ---- */
 // When collapsed, the sidebar shrinks to an icon-only rail; the label text is moved to each nav
-// link's title so it still shows on hover. State persists in localStorage. Google maps need a
-// resize nudge once the main column's width settles.
+// link's title so it still shows on hover. State persists in localStorage.
 function applyNavCollapsed(collapsed){
   const app=document.getElementById('app'), btn=document.getElementById('navtoggle');
   app.classList.toggle('nav-collapsed',collapsed);
@@ -31,7 +28,6 @@ function applyNavCollapsed(collapsed){
     const label=a.querySelector('span:not(.badge)');
     if(label)a.title=collapsed?label.textContent:'';
   });
-  setTimeout(()=>{map&&nudgeMap(map);const rm=getRouteMap();rm&&nudgeMap(rm);},220);
 }
 export function toggleNav(){
   const collapsed=!document.getElementById('app').classList.contains('nav-collapsed');
@@ -45,13 +41,11 @@ export function logout(){sb.auth.signOut();}
 Object.assign(window,{
   $,state,go,render,updateBadges,
   setCrmView,setCrmFilter,renderCRM,
-  openLead,closeDrawer,openConfirm,closeConfirm,doConfirm,askDeleteLead,addToRoute,viewLeadOnMap,setStage,deleteLead,
-  addProspectToCRM,reEnrich,
+  openLead,closeDrawer,openConfirm,closeConfirm,doConfirm,askDeleteLead,setStage,deleteLead,
+  reEnrich,
   regenAI,sendGmail,sendDefault,copyEmail,
-  drawMarkers,searchMapArea,toggleMapSearchPanel,toggleColorScheme,submitGoogleCreds,setMapNoWebOnly,showBizPanel,
   runFinder,addFromFinder,setFinderCat,setFinderGap,setFinderSort,renderAreaSuggest,pickArea,hideAreaSuggest,
   renderCal,openMeetingModal,onMeetLeadChange,closeMeetingModal,saveMeetingModal,askDeleteMeeting,
-  renderRoutes,panRouteTo,
   openRepModal,closeRepModal,saveRepModal,deleteRepFromModal,
   openAI,closeAI,aiSend,
   logout,doLogin,toggleNav,
@@ -62,7 +56,6 @@ document.querySelectorAll('#nav a[data-view]').forEach(a=>a.addEventListener('cl
 $('#repfilter').addEventListener('change',e=>{state.rep=e.target.value;render(state.view);});
 $('#globalsearch').addEventListener('keydown',e=>{if(e.key==='Enter'){const q=e.target.value.toLowerCase();const hit=LEADS.find(l=>l.name.toLowerCase().includes(q));if(hit)openLead(hit.id);}});
 const style=document.createElement('style');style.textContent='@keyframes pulse{0%{box-shadow:0 0 0 3px currentColor}70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 3px transparent}}';document.head.appendChild(style);
-let _rz;window.addEventListener('resize',()=>{clearTimeout(_rz);_rz=setTimeout(()=>{map&&nudgeMap(map);const rm=getRouteMap();rm&&nudgeMap(rm);},200);});
 document.querySelectorAll('[data-ic]').forEach(el=>{el.outerHTML=ic(el.dataset.ic,el.dataset.c,el.dataset.s?+el.dataset.s:undefined);});
 
 /* ========== AUTH GATE ========== */
@@ -119,7 +112,7 @@ sb.auth.onAuthStateChange(async(event,session)=>{
     hideLogin();
     await loadAllData();
     renderRepFilter();
-    go('areas');
+    go('dashboard');
   }else{
     _appReady=false;
     LEADS.length=0;REPS.length=0;EVENTS.length=0;

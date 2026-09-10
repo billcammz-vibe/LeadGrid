@@ -5,9 +5,7 @@
 import {sb,dbError,apiFetch} from './sb.js';
 import {LEADS,REPS,EVENTS,addedProspects,state} from './state.js';
 import {leadById,prospectById,detectGaps,gapSummary,demandSignal,scoreFor} from './helpers.js';
-import {ic} from './icons.js';
 import {updateBadges,render} from './router.js';
-import {drawMarkers,showBizPanel,map} from './maps.js';
 import {closeDrawer,openLead} from './drawer.js';
 import {renderCRM} from './crm.js';
 
@@ -100,40 +98,24 @@ export function saveNewLead(nl,sourceId){
     dbError('Failed to save lead — '+error.message);
   });
 }
-export function addProspectToCRM(pid){
-  const p=prospectById(pid);if(!p)return;
-  if(alreadyInCRM(pid)){const ex=LEADS.find(l=>l.sourceId===pid);if(ex)showBizPanel('lead',ex.id);return;}
-  const rep=pickRepForNewLead();
-  if(!rep){dbError('Add a rep before adding leads to your CRM — see the Reps tab.');return;}
-  addedProspects.add(pid);
-  const nl={...p,id:'l_'+pid+'_'+Date.now(),sourceId:pid,stage:'new',rep:rep.id};
-  LEADS.push(nl);
-  updateBadges();
-  drawMarkers();
-  showBizPanel('lead',nl.id);
-  saveNewLead(nl,pid);
-}
-
 /* ---- enrichment persistence ---- */
 export function persistEnrich(kind,id,b){
   if(kind!=='lead')return; // prospects are pre-CRM and never touch Supabase
   sb.from('leads').update({socials:b.socials||{},enrich_checked:true,enrich_ok:b._enrichOk,enrich_note:b._enrichNote}).eq('id',id)
     .then(({error})=>{if(error)dbError('Failed to save enrichment — '+error.message);});
 }
+// Socials enrichment via the /api/socials proxy (Tavily). No dedicated UI surface right now —
+// the drawer wires this in during the ENRICH step; for now it updates the lead + persists.
 export async function reEnrich(kind,id){
   const b=kind==='lead'?leadById(id):prospectById(id);
   if(!b)return;
   b._enrichChecked=true;
-  const note=document.querySelector('#bizpopup .enrichnote');
-  const relink=`<a onclick="reEnrich('${kind}','${id}')">Re-enrich</a>`;
-  if(note)note.innerHTML=ic('spark','#A855F7',12)+' '+(b.web?'Scraping '+b.web.replace('https://',''):'Searching for '+b.name)+'…';
   try{
     const qs=new URLSearchParams({url:b.web||'',name:b.name||'',city:b.city||''});
     const res=await apiFetch('/api/socials?'+qs.toString());
     const data=await res.json();
     if(data.error){
       b._enrichOk=false; b._enrichNote=data.error;
-      if(note)note.innerHTML=ic('link','#5C6E8A',12)+' '+data.error+' · '+relink;
       persistEnrich(kind,id,b);
       return;
     }
@@ -144,13 +126,10 @@ export async function reEnrich(kind,id){
     const anyUnverified=data.instagramSource==='search'||data.facebookSource==='search';
     b._enrichOk=true;
     b._enrichNote=found.length?found.join(' & ')+' found'+(anyUnverified?' (via search — please verify)':''):'No social links found';
-    if(document.getElementById('bizpopup'))showBizPanel(kind,id); // re-render with the new socials + note
-    else if(note)note.innerHTML=ic('check','#22C55E',12)+' '+b._enrichNote+' · '+relink;
     if(state.view==='crm')renderCRM();
     persistEnrich(kind,id,b);
   }catch(err){
     b._enrichOk=false; b._enrichNote='Scrape failed — '+err.message;
-    if(note)note.innerHTML=ic('link','#5C6E8A',12)+' Scrape failed — '+err.message+' · '+relink;
     persistEnrich(kind,id,b);
   }
 }
@@ -158,12 +137,12 @@ export async function reEnrich(kind,id){
 /* ---- lead mutation ---- */
 export function deleteLead(id){
   const i=LEADS.findIndex(l=>l.id===id); if(i<0)return;
-  // if this lead came from a map prospect or a Lead Finder search, free it so it can resurface
+  // if this lead came from a Lead Finder search, free its source id so it can resurface
   if(LEADS[i].sourceId)addedProspects.delete(LEADS[i].sourceId);
   LEADS.splice(i,1);
   for(let j=EVENTS.length-1;j>=0;j--){if(EVENTS[j].leadId===id)EVENTS.splice(j,1);} // DB cascades the row; array doesn't auto-sync
   closeDrawer(); updateBadges();
-  if(state.view==='areas'&&map){drawMarkers();} else {render(state.view);}
+  render(state.view);
   sb.from('leads').delete().eq('id',id).then(({error})=>{if(error)dbError('Failed to delete lead — '+error.message);});
 }
 export function setStage(id,stage){

@@ -9,7 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/styles.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@googlemaps/markerclusterer@2.5.3/dist/index.min.js"></script>
 </head>
 <body>
 
@@ -39,12 +38,10 @@
     </div>
     <div class="navlabel">Workspace</div>
     <nav class="nav" id="nav">
-      <a data-view="areas" class="active"><i data-ic="map"></i><span>Map</span></a>
-      <a data-view="dashboard"><i data-ic="grid"></i><span>Dashboard</span></a>
+      <a data-view="dashboard" class="active"><i data-ic="grid"></i><span>Dashboard</span></a>
       <a data-view="crm"><i data-ic="users"></i><span>CRM</span><span class="badge" id="nb-crm">0</span></a>
       <a data-view="finder"><i data-ic="search"></i><span>Finder</span></a>
       <a data-view="calendar"><i data-ic="cal"></i><span>Calendar</span></a>
-      <a data-view="routes"><i data-ic="route"></i><span>Routes</span></a>
       <a data-view="reps"><i data-ic="badge"></i><span>Reps</span></a>
     </nav>
     <div class="navlabel">Intelligence</div>
@@ -69,12 +66,10 @@
 
   <!-- MAIN -->
   <main class="main" id="main">
-    <section class="view" data-view="dashboard" id="v-dashboard"></section>
+    <section class="view active" data-view="dashboard" id="v-dashboard"></section>
     <section class="view" data-view="crm" id="v-crm"></section>
-    <section class="view nopad active" data-view="areas" id="v-areas"></section>
     <section class="view" data-view="finder" id="v-finder"></section>
     <section class="view" data-view="calendar" id="v-calendar"></section>
-    <section class="view" data-view="routes" id="v-routes"></section>
     <section class="view" data-view="reps" id="v-reps"></section>
   </main>
 </div>

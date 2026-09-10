@@ -1,10 +1,9 @@
-// Lead Finder view: searches Google Places across every category for an area, lists results, and
-// adds them to the CRM. Also owns the low-level searchPlaces() proxy call used by the map search.
+// Lead Finder view: searches Google Places across every category for an area, flags businesses
+// with a gap, and adds them to the CRM. Also owns the low-level searchPlaces() proxy call.
 import {$,scorePill,placeToBusiness,gapChips} from './helpers.js';
 import {ic} from './icons.js';
-import {CATS,CAT_QUERY_TERMS,AREA_SUGGESTIONS,GAP_TYPES,addedProspects,state,setLivePool,LEADS,GOOGLE_KEY} from './state.js';
+import {CATS,CAT_QUERY_TERMS,AREA_SUGGESTIONS,GAP_TYPES,addedProspects,state,setLivePool,LEADS} from './state.js';
 import {apiFetch,dbError} from './sb.js';
-import {map,drawMarkers} from './maps.js';
 import {pickRepForNewLead,alreadyInCRM,saveNewLead} from './data.js';
 import {updateBadges} from './router.js';
 
@@ -31,10 +30,10 @@ export function renderFinder(){
           <input id="farea" autocomplete="off" value="Mississauga, ON" style="width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--text)"
             oninput="renderAreaSuggest()" onfocus="renderAreaSuggest(true)" onblur="setTimeout(hideAreaSuggest,150)">
           <div id="areaSuggest" class="area-suggest"></div></div>
-        <button class="btn" id="findbtn" onclick="runFinder()"${GOOGLE_KEY?'':' disabled style="opacity:.5;cursor:not-allowed"'}>${ic('search','#fff')} Find leads</button>
+        <button class="btn" id="findbtn" onclick="runFinder()">${ic('search','#fff')} Find leads</button>
       </div>
     </div>
-    <div id="finderresults"><div class="empty">${ic('search','#5C6E8A',40)}<div>${GOOGLE_KEY?'Enter an area and run a search.':'No Google API key configured — set VITE_GOOGLE_API_KEY in .env.local, or add one via Connect Google Maps on the Map tab.'}</div><div style="font-size:12px;margin-top:4px">Searches ${CATS.length} categories at once, keeps only businesses with a gap — no website, low rating, few reviews, or an odd status — and scores each by gap severity × demand.</div></div></div>`;
+    <div id="finderresults"><div class="empty">${ic('search','#5C6E8A',40)}<div>Enter an area and run a search.</div><div style="font-size:12px;margin-top:4px">Searches ${CATS.length} categories at once, keeps only businesses with a gap — no website, low rating, few reviews, or an odd status — and scores each by gap severity × demand.</div></div></div>`;
 }
 
 /* ---- Google Places API (New) — searchText, via our /api/places-search proxy ---- */
@@ -52,10 +51,6 @@ export async function searchPlaces(textQuery,near){
 export async function runFinder(){
   const area=$('#farea').value.trim();
   const out=$('#finderresults'), btn=$('#findbtn');
-  if(!GOOGLE_KEY){
-    out.innerHTML='<div class="empty">'+ic('search','#5C6E8A',34)+'<div>No Google API key configured — set VITE_GOOGLE_API_KEY in .env.local, or add one via Connect Google Maps on the Map tab.</div></div>';
-    return;
-  }
   if(!area){
     out.innerHTML='<div class="empty">'+ic('search','#5C6E8A',34)+'<div>Enter an area to search.</div></div>';
     return;
@@ -82,13 +77,12 @@ export async function runFinder(){
     });
     const scanned=res.length;
     res=res.filter(b=>b.gaps&&b.gaps.length); // only businesses with something to pitch
-    setLivePool(res);                          // feed the map
+    setLivePool(res);
     state.finderResults=res;
     state.finderArea=area;
     state.finderScanned=scanned;
     state.finderCat=''; state.finderGap=''; state.finderSort='score';
     renderFinderResults(res,area);
-    if(state.view==='areas'&&map)drawMarkers();
   }catch(err){
     out.innerHTML=`<div class="card" style="border-color:rgba(239,68,68,.4)"><b style="color:#F87171">Places API error</b><div style="color:var(--muted);font-size:13px;margin-top:6px">${(''+err.message).replace(/</g,'&lt;')}</div><div style="color:var(--dim);font-size:12px;margin-top:8px">Check the key is valid, billing is enabled, and the <b>Places API (New)</b> is turned on. If you opened this file locally, the request still works — but some corporate networks block it.</div></div>`;
   }finally{btn.disabled=false; btn.style.opacity=1;}
@@ -138,6 +132,5 @@ export function addFromFinder(i){
   LEADS.push(nl);
   markAdded();
   updateBadges();
-  if(state.view==='areas'&&map)drawMarkers();
   saveNewLead(nl,p.id);
 }

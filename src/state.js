@@ -56,24 +56,14 @@ export const AI_SUGG=['Top leads to call today','Which rep is underloaded?','Sum
 export const LEADS=[];
 export const REPS=[];
 export const EVENTS=[];
-export const POOL=[]; // prospects on the map, not yet in CRM
+export const POOL=[]; // prospects surfaced by search, not yet in CRM
 export const addedProspects=new Set();
 
 /* ---- app view state (an object, so property mutation is visible everywhere) ---- */
-export const state={view:'areas',rep:'all',finderCat:'',finderGap:'',finderSort:'score',finderArea:'',finderScanned:0,finderResults:[],finderAdded:new Set(),calWeekOffset:0};
-
-/* ---- Google Maps / Places credentials (reassignable) ---- */
-export let GOOGLE_KEY=localStorage.getItem('lg_google_key')||import.meta.env.VITE_GOOGLE_API_KEY||'';       // Maps JS key — client-side by necessity, protected by HTTP referrer restriction
-export let GOOGLE_MAP_ID=localStorage.getItem('lg_google_mapid')||import.meta.env.VITE_GOOGLE_MAP_ID||'';   // optional; falls back to DEMO_MAP_ID
-export function saveGoogleCreds(key,mapId){
-  GOOGLE_KEY=(key||'').trim();
-  GOOGLE_MAP_ID=(mapId||'').trim();
-  if(GOOGLE_KEY)localStorage.setItem('lg_google_key',GOOGLE_KEY);else localStorage.removeItem('lg_google_key');
-  if(GOOGLE_MAP_ID)localStorage.setItem('lg_google_mapid',GOOGLE_MAP_ID);else localStorage.removeItem('lg_google_mapid');
-}
+export const state={view:'dashboard',rep:'all',finderCat:'',finderGap:'',finderSort:'score',finderArea:'',finderScanned:0,finderResults:[],finderAdded:new Set(),calWeekOffset:0};
 
 /* ---- other reassignable cross-module runtime values ---- */
-export let livePool=[];              // businesses fetched live from Google Places
+export let livePool=[];              // businesses fetched live from Google Places (Lead Finder)
 export const setLivePool=v=>{livePool=v;};
 
 export let crmView='table';
@@ -83,6 +73,3 @@ export const setCrmFilter=v=>{crmFilter=v;};
 
 export let currentUserName='there';
 export const setCurrentUserName=v=>{currentUserName=v;};
-
-export let pendingMapFocus=null; // lead id to pan to + open once drawMarkers next runs — set by viewLeadOnMap
-export const setPendingMapFocus=v=>{pendingMapFocus=v;};

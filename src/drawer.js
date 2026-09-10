@@ -1,10 +1,9 @@
 // Lead detail drawer + the shared confirm modal.
-import {$,leadById,repById,pill,scorePill,money,hash} from './helpers.js';
-import {STAGES,state,setPendingMapFocus} from './state.js';
+import {$,leadById,repById,pill,scorePill,money,hash,gapChips} from './helpers.js';
+import {STAGES} from './state.js';
 import {ic} from './icons.js';
 import {aiScaffold,renderAI,setCurLead,setAiSeed} from './outreach.js';
 import {deleteLead} from './data.js';
-import {go} from './router.js';
 
 export function openLead(id){
   const l=leadById(id),r=repById(l.rep);
@@ -14,13 +13,14 @@ export function openLead(id){
       <button class="x" onclick="closeDrawer()">${ic('x')}</button>
       <div class="dcat">${l.cat} · ${l.city}</div>
       <h2>${l.name} ${l.hot?'🔥':''}</h2>
-      <div class="dmeta">${pill(l.stage)} ${l.website?'':'<span class="nowww">no website</span>'} <span class="cat">★ ${l.rating} (${l.reviewCount})</span> ${scorePill(l.score)}</div>
+      <div class="dmeta">${pill(l.stage)} <span class="cat">★ ${l.rating} (${l.reviewCount})</span> ${scorePill(l.score)}</div>
+      ${l.gaps&&l.gaps.length?`<div class="dmeta" style="margin-top:6px">${gapChips(l)}</div>`:''}
     </div>
     <div class="dbody">
       ${aiScaffold()}
       <div class="dsec"><div class="st">Stage &amp; actions</div>
         <div class="stageflow">${STAGES.filter(s=>s.id!=='lost').map(s=>`<button class="${l.stage===s.id?'on':''}" style="${l.stage===s.id?'background:'+s.color+';border-color:'+s.color:''}" onclick="setStage('${l.id}','${s.id}')">${s.name}</button>`).join('')}</div>
-        <div class="dacts"><button class="btn" onclick="window.location.href='tel:${(l.phone||'').replace(/[^\d+]/g,'')}'"${l.phone?'':' disabled style="opacity:.5;cursor:not-allowed"'}>${ic('phone','#fff')} Call</button><button class="btn ghost" onclick="addToRoute('${l.id}')">${ic('route')} Add to route</button><button class="btn ghost" onclick="viewLeadOnMap('${l.id}')">${ic('map')} View on map</button></div>
+        <div class="dacts"><button class="btn" onclick="window.location.href='tel:${(l.phone||'').replace(/[^\d+]/g,'')}'"${l.phone?'':' disabled style="opacity:.5;cursor:not-allowed"'}>${ic('phone','#fff')} Call</button></div>
       </div>
       <div class="dsec"><div class="st">Details</div>
         <div class="kv2">
@@ -45,12 +45,3 @@ export function openConfirm(html,cb){_confirmCb=cb;$('#confirmMsg').innerHTML=ht
 export function closeConfirm(){$('#confirmModal').classList.remove('open');_confirmCb=null;}
 export function doConfirm(){const cb=_confirmCb;_confirmCb=null;$('#confirmModal').classList.remove('open');if(cb)cb();}
 export function askDeleteLead(id){const l=leadById(id);if(!l)return;openConfirm(`Delete <b>${l.name}</b> from your CRM?<br><span style="color:var(--muted);font-size:12.5px">This removes the lead and its outreach. It can’t be undone.</span>`,()=>deleteLead(id));}
-
-export function addToRoute(id){closeDrawer();const l=leadById(id);state.rep=l.rep;go('routes');setTimeout(()=>alert(l.name+' added to '+repById(l.rep).name+"'s route"),120);}
-export function viewLeadOnMap(id){
-  const l=leadById(id); if(!l||!l.lat||!l.lng)return;
-  closeDrawer();
-  state.rep=l.rep; // so the lead's marker is visible even if the map's rep filter was on someone else
-  setPendingMapFocus(id);
-  go('areas');
-}
