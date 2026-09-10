@@ -12,7 +12,7 @@ import {renderCRM} from './crm.js';
 import {renderCal} from './calendar.js';
 import {runFinder,addFromFinder,setFinderCat,setFinderGap,setFinderSort,renderAreaSuggest,pickArea,hideAreaSuggest} from './finder.js';
 import {openLead,closeDrawer,openConfirm,closeConfirm,doConfirm,askDeleteLead} from './drawer.js';
-import {regenAI,sendGmail,sendDefault,copyEmail} from './outreach.js';
+import {regenAI,regenEmail,sendGmail,sendDefault,copyEmail} from './outreach.js';
 import {openMeetingModal,onMeetLeadChange,closeMeetingModal,saveMeetingModal,askDeleteMeeting} from './calendar.js';
 import {openRepModal,closeRepModal,saveRepModal,deleteRepFromModal} from './reps.js';
 import {openAI,closeAI,aiSend} from './assistant.js';
@@ -43,7 +43,7 @@ Object.assign(window,{
   setCrmView,setCrmFilter,renderCRM,
   openLead,closeDrawer,openConfirm,closeConfirm,doConfirm,askDeleteLead,setStage,deleteLead,
   reEnrich,
-  regenAI,sendGmail,sendDefault,copyEmail,
+  regenAI,regenEmail,sendGmail,sendDefault,copyEmail,
   runFinder,addFromFinder,setFinderCat,setFinderGap,setFinderSort,renderAreaSuggest,pickArea,hideAreaSuggest,
   renderCal,openMeetingModal,onMeetLeadChange,closeMeetingModal,saveMeetingModal,askDeleteMeeting,
   openRepModal,closeRepModal,saveRepModal,deleteRepFromModal,

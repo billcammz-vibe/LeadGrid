@@ -31,6 +31,11 @@ application/referrer restriction (server-to-server calls can't send one), API-re
 two. Put it in `GOOGLE_PLACES_API_KEY`. There is no client-side map, so no Maps JavaScript API
 key or Map ID is required.
 
+### Claude
+`ANTHROPIC_API_KEY` from [console.anthropic.com](https://console.anthropic.com) — server-side only.
+Drafts the per-lead outreach email (`api/generate-email`, model `claude-sonnet-5`). Nothing sends
+automatically; drafts land in an editable box with copy / Gmail-compose actions.
+
 ### Tavily
 `TAVILY_API_KEY` from [tavily.com](https://tavily.com) — social-link enrichment only.
 
@@ -44,5 +49,5 @@ for `npm run dev`). Set the same env vars in the Vercel project.
 - `src/` — `main.js` (entry), `state.js` (shared state), then one module per feature: `crm.js`,
   `finder.js`, `calendar.js`, `reps.js`, `drawer.js`, `outreach.js`, `assistant.js`,
   `dashboard.js`, plus `router.js`, `data.js` (Supabase layer), `sb.js`, `helpers.js`, `icons.js`
-- `api/` — auth-gated proxies: `places-search.js`, `geocode.js`, `socials.js` (+ `lib/`)
+- `api/` — auth-gated proxies: `places-search.js`, `geocode.js`, `socials.js`, `generate-email.js` (+ `lib/`)
 - `supabase/` — `schema.sql` and incremental `migrations/`
