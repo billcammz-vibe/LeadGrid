@@ -158,6 +158,7 @@ export function placeToBusiness(p,queryCat){
   };
   b.gaps=detectGaps(b);
   b.gapSummary=gapSummary(b);
+  b.demandSignal=demandSignal(b);
   b.score=scoreFor(b);
   return b;
 }

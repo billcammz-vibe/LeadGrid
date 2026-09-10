@@ -4,7 +4,7 @@
 // rollback-on-failure or realtime multi-tab sync — this is a single-owner tool.
 import {sb,dbError,apiFetch} from './sb.js';
 import {LEADS,REPS,EVENTS,addedProspects,state} from './state.js';
-import {leadById,prospectById} from './helpers.js';
+import {leadById,prospectById,detectGaps,gapSummary,demandSignal,scoreFor} from './helpers.js';
 import {ic} from './icons.js';
 import {updateBadges,render} from './router.js';
 import {drawMarkers,showBizPanel,map} from './maps.js';
@@ -12,21 +12,37 @@ import {closeDrawer,openLead} from './drawer.js';
 import {renderCRM} from './crm.js';
 
 export function dbLeadToClient(row){
-  return{id:row.id,sourceId:row.source_id,name:row.name,cat:row.cat,city:row.city,
+  const l={id:row.id,sourceId:row.source_id,name:row.name,cat:row.cat,city:row.city,
     province:row.province,postal:row.postal,street:row.street,address:row.address,
     lat:row.lat,lng:row.lng,phone:row.phone,website:row.website,web:row.web,
     rating:row.rating,reviewCount:row.review_count,value:row.value,email:row.email,
+    status:row.business_status||'',
     socials:row.socials||{},reviews:row.reviews||[],hot:row.hot,score:row.score,
+    gaps:row.gaps||null,gapSummary:row.gap_summary||'',
+    demandSignal:row.demand_signal!=null?+row.demand_signal:null,
     stage:row.stage,rep:row.rep_id,
     _enrichChecked:row.enrich_checked,_enrichOk:row.enrich_ok,_enrichNote:row.enrich_note,
     createdAt:row.created_at,updatedAt:row.updated_at};
+  // Rows created before the gap columns existed store gaps as NULL — analyse them from the
+  // fields we do have (website/rating/review_count/status) so the CRM shows the same tags and
+  // score as a freshly-found lead. Recomputed each load; persisted next time the lead is saved.
+  if(l.gaps==null){
+    l.gaps=detectGaps(l);
+    l.gapSummary=gapSummary(l);
+    l.demandSignal=demandSignal(l);
+    l.score=scoreFor(l);
+  }
+  return l;
 }
 export function clientLeadToDb(l){
   return{id:l.id,source_id:l.sourceId||null,name:l.name,cat:l.cat,city:l.city,
     province:l.province,postal:l.postal,street:l.street,address:l.address,
     lat:l.lat,lng:l.lng,phone:l.phone,website:!!l.website,web:l.web,
     rating:l.rating,review_count:l.reviewCount,value:l.value,email:l.email,
+    business_status:l.status||null,
     socials:l.socials||{},reviews:l.reviews||[],hot:!!l.hot,score:l.score,
+    gaps:l.gaps||[],gap_summary:l.gapSummary||null,
+    demand_signal:l.demandSignal!=null?l.demandSignal:null,
     stage:l.stage,rep_id:l.rep||null,
     enrich_checked:!!l._enrichChecked,enrich_ok:l._enrichOk==null?null:!!l._enrichOk,enrich_note:l._enrichNote||null};
 }

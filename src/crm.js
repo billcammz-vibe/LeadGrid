@@ -1,5 +1,5 @@
 // CRM view: table + kanban of the current rep's leads.
-import {$,visibleLeads,money,repById,scorePill,socialIcons} from './helpers.js';
+import {$,visibleLeads,money,repById,scorePill,socialIcons,gapChips} from './helpers.js';
 import {STAGES,stageOf,state,crmView,crmFilter} from './state.js';
 import {ic} from './icons.js';
 
@@ -13,7 +13,7 @@ export function renderCRM(){
   if(crmView==='table'){
     const rows=[...ls].sort((a,b)=>b.score-a.score);
     body=`<div class="tblwrap"><table class="tbl crm-tbl"><thead><tr>
-      <th>Business name</th><th>Address</th><th>City</th><th>Prov.</th><th>Website</th><th>Email</th><th>Postal</th><th>Phone</th><th>Socials</th><th>Reviews</th><th>Sales score</th><th></th>
+      <th>Business name</th><th>Address</th><th>City</th><th>Prov.</th><th>Website</th><th>Email</th><th>Postal</th><th>Phone</th><th>Socials</th><th>Reviews</th><th>Gaps</th><th>Sales score</th><th></th>
     </tr></thead><tbody>
       ${rows.map(l=>`<tr onclick="openLead('${l.id}')">
         <td><div class="biz"><b><span class="sdot" style="background:${stageOf(l.stage).color}" title="${stageOf(l.stage).name}"></span>${l.name} ${l.hot?'🔥':''}</b>${l.website?'':'<small><span class="nowww">no website</span></small>'}</div></td>
@@ -26,6 +26,7 @@ export function renderCRM(){
         <td class="mono nowrap">${l.phone}</td>
         <td>${socialIcons(l)}</td>
         <td class="mono nowrap">★ ${l.rating} · ${l.reviewCount}</td>
+        <td>${gapChips(l)}</td>
         <td>${scorePill(l.score)}</td>
         <td><button class="rowdel" title="Delete lead" onclick="event.stopPropagation();askDeleteLead('${l.id}')">${ic('trash','',15)}</button></td>
       </tr>`).join('')}
