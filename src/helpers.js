@@ -1,6 +1,6 @@
 // Formatting, DOM, scoring, and business-shape helpers shared across feature modules.
 import {ic} from './icons.js';
-import {stageOf,LEADS,REPS,POOL,livePool,state,STREETS,FSA,PLET,REVIEW_THEMES,REVIEW_AUTHORS,REVIEW_TIMES} from './state.js';
+import {stageOf,LEADS,REPS,POOL,livePool,state,gapOf,STREETS,FSA,PLET,REVIEW_THEMES,REVIEW_AUTHORS,REVIEW_TIMES} from './state.js';
 
 export const $=s=>document.querySelector(s);
 export const money=n=>'$'+n.toLocaleString();
@@ -21,6 +21,52 @@ export const prospectById=id=>POOL.find(p=>p.id===id)||livePool.find(p=>p.id===i
 export function pill(stageId){const s=stageOf(stageId);return '<span class="pill" style="background:'+s.color+'1a;color:'+s.color+'"><span class="d" style="background:'+s.color+'"></span>'+s.name+'</span>';}
 export function repAv(id){const r=repById(id);return r?'<span class="repav" style="background:'+r.color+'" title="'+r.name+'">'+r.init+'</span>':'—';}
 export function scoreColor(s){return s>=75?'#22C55E':s>=58?'#4D9FFF':s>=45?'#F5A524':'#EF4444';}
+
+/* ---- gap detection + lead scoring ---- */
+// Every reason a business gets flagged as a prospect. Returns [{type,tag,sev}] — `tag` is the
+// human string shown on the row, `sev` is this gap's weight in the score (0..1, summed then
+// capped). Thresholds: rating < 4.0 (needs ≥5 reviews to be meaningful), < 15 reviews, or a
+// Google businessStatus that isn't OPERATIONAL. A business with an empty array isn't a lead.
+export function detectGaps(b){
+  const g=[], rc=b.reviewCount||0;
+  if(!b.website) g.push({type:'no_website',tag:'No website',sev:.70});
+  if(b.rating && rc>=5 && b.rating<4.0) g.push({type:'low_rating',tag:b.rating+'★',sev:.28});
+  if(rc<15) g.push({type:'few_reviews',tag:rc+' review'+(rc===1?'':'s'),sev:.16});
+  if(b.status && b.status!=='OPERATIONAL')
+    g.push({type:'odd_status',tag:b.status==='CLOSED_TEMPORARILY'?'Temporarily closed':b.status==='CLOSED_PERMANENTLY'?'Permanently closed':'Status unclear',sev:.60});
+  return g;
+}
+// How much proven demand a business has: rating quality blended with review volume, 0..1.
+// A highly-rated, heavily-reviewed business scores near 1; a thin or poorly-rated one near 0.15.
+export function demandSignal(b){
+  const rq=b.rating?Math.min(b.rating/4.8,1):0.55;                 // unknown rating → neutral
+  const vol=Math.min(Math.log10((b.reviewCount||0)+1)/2.2,1);     // ~160 reviews → ~1
+  return 0.15+0.85*(0.45*rq+0.55*vol);
+}
+// Lead score = gap severity × demand signal. A thriving business with a real gap (e.g. no site)
+// outranks a struggling one with the same gap. 0 when nothing is flagged. Heuristic — tune freely.
+export function scoreFor(b){
+  const gaps=b.gaps||detectGaps(b);
+  if(!gaps.length)return 0;
+  const severity=Math.min(gaps.reduce((s,g)=>s+g.sev,0),1);
+  return Math.max(1,Math.min(100,Math.round(100*severity*demandSignal(b))));
+}
+// One-line "why flagged" string, e.g. "No website · 4.6★ · 82 reviews". Leads with the gap tags,
+// then appends rating/review context that isn't already spoken for by a gap.
+export function gapSummary(b){
+  const gaps=b.gaps||detectGaps(b);
+  const parts=gaps.map(g=>g.tag);
+  if(!gaps.some(g=>g.type==='low_rating')&&b.rating) parts.push(b.rating+'★');
+  if(!gaps.some(g=>g.type==='few_reviews')) parts.push((b.reviewCount||0)+' reviews');
+  return parts.join(' · ');
+}
+// Row of coloured pills, one per gap — themed from GAP_TYPES.
+export function gapChips(b){
+  const gaps=b.gaps||[];
+  if(!gaps.length)return '<span style="color:var(--dim)">—</span>';
+  return `<div class="gapchips">${gaps.map(g=>{const c=(gapOf(g.type)||{}).color||'#94A6BF';
+    return `<span class="pill" style="background:${c}1a;color:${c};font-size:11px"><span class="d" style="background:${c}"></span>${g.tag}</span>`;}).join('')}</div>`;
+}
 export function scorePill(s){const c=scoreColor(s);return `<span class="scorepill"><span class="sbar"><i style="width:${s}%;background:${c}"></i></span><b style="color:${c}">${s}</b></span>`;}
 export function socialIcons(b){const so=b.socials||{},it=[];
   if(so.instagram)it.push(`<a class="sic" href="https://instagram.com/${so.instagram.replace('@','')}" target="_blank" rel="noopener" title="Instagram${so.instagramSource==='search'?' (found via search — unverified)':''}" onclick="event.stopPropagation()">${ic('instagram',so.instagramSource==='search'?'#8B6FB8':'#C084FC',15)}</a>`);
@@ -48,7 +94,6 @@ export function inferCategory(types){
 export function slug(n){return n.toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'').slice(0,22);}
 export function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h;}
 export function postalFor(city,h){const fsa=FSA[city]||'M5';const a=PLET[h%PLET.length];const l2=PLET[(h>>4)%PLET.length];return `${fsa}${a} ${h%10}${l2}${(h>>3)%10}`;}
-export function scoreFor(b){let s=42;if(!b.website)s+=25;s+=Math.min(b.reviewCount/20,15);s+=(b.rating>=3.6&&b.rating<=4.6)?10:(b.rating>4.6?4:0);s+=Math.max(0,Math.min((b.value-1400)/40,12));if(b.hot)s+=8;return Math.max(0,Math.min(100,Math.round(s)));}
 export function generateSampleReviews(b){
   const t=REVIEW_THEMES[b.cat]||{pros:['friendly service','good value'],cons:['could improve online booking']};
   const h=hash(b.name), n=4, pos=Math.round(n*(b.rating/5)), out=[];
@@ -104,12 +149,15 @@ export function placeToBusiness(p,queryCat){
     phone:p.nationalPhoneNumber||'',
     website:!!p.websiteUri, web:p.websiteUri||null,
     rating:p.rating||0, reviewCount:p.userRatingCount||0,
+    status:p.businessStatus||'',                  // OPERATIONAL / CLOSED_TEMPORARILY / CLOSED_PERMANENTLY
     value:1400+((p.userRatingCount||0)>150?400:200),
     email:null,                                   // Places doesn't return email — enrich later
     socials:{instagram:null,facebook:null,google:p.googleMapsUri?'Google Business Profile':null},
     reviews:[],                                   // fetch via Place Details later
     hot:false
   };
+  b.gaps=detectGaps(b);
+  b.gapSummary=gapSummary(b);
   b.score=scoreFor(b);
   return b;
 }

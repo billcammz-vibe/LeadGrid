@@ -12,7 +12,7 @@ import {renderCRM} from './crm.js';
 import {renderCal} from './calendar.js';
 import {renderRoutes,panRouteTo,getRouteMap} from './routes.js';
 import {map,nudgeMap,drawMarkers,searchMapArea,toggleMapSearchPanel,toggleColorScheme,submitGoogleCreds,setMapNoWebOnly,showBizPanel} from './maps.js';
-import {runFinder,addFromFinder,setFinderCat,renderAreaSuggest,pickArea,hideAreaSuggest} from './finder.js';
+import {runFinder,addFromFinder,setFinderCat,setFinderGap,setFinderSort,renderAreaSuggest,pickArea,hideAreaSuggest} from './finder.js';
 import {openLead,closeDrawer,openConfirm,closeConfirm,doConfirm,askDeleteLead,addToRoute,viewLeadOnMap} from './drawer.js';
 import {regenAI,sendGmail,sendDefault,copyEmail} from './outreach.js';
 import {openMeetingModal,onMeetLeadChange,closeMeetingModal,saveMeetingModal,askDeleteMeeting} from './calendar.js';
@@ -49,7 +49,7 @@ Object.assign(window,{
   addProspectToCRM,reEnrich,
   regenAI,sendGmail,sendDefault,copyEmail,
   drawMarkers,searchMapArea,toggleMapSearchPanel,toggleColorScheme,submitGoogleCreds,setMapNoWebOnly,showBizPanel,
-  runFinder,addFromFinder,setFinderCat,renderAreaSuggest,pickArea,hideAreaSuggest,
+  runFinder,addFromFinder,setFinderCat,setFinderGap,setFinderSort,renderAreaSuggest,pickArea,hideAreaSuggest,
   renderCal,openMeetingModal,onMeetLeadChange,closeMeetingModal,saveMeetingModal,askDeleteMeeting,
   renderRoutes,panRouteTo,
   openRepModal,closeRepModal,saveRepModal,deleteRepFromModal,

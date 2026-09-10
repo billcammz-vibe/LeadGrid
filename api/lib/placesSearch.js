@@ -5,7 +5,7 @@
 // the same key the Maps JS API already uses so this works without provisioning a new key first.
 const { cached } = require('./cache');
 
-const FIELD_MASK = 'places.id,places.displayName,places.formattedAddress,places.addressComponents,places.location,places.rating,places.userRatingCount,places.nationalPhoneNumber,places.websiteUri,places.googleMapsUri,places.types';
+const FIELD_MASK = 'places.id,places.displayName,places.formattedAddress,places.addressComponents,places.location,places.rating,places.userRatingCount,places.nationalPhoneNumber,places.websiteUri,places.googleMapsUri,places.types,places.businessStatus';
 const PLACES_TTL_MS = 6 * 60 * 60 * 1000; // business listings shift slowly; 6h keeps repeat searches cheap without going stale
 
 async function searchPlacesText({ textQuery, near } = {}) {

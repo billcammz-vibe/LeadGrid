@@ -10,6 +10,17 @@ export const STAGES=[
   {id:'qualified',name:'Qualified',color:'#4D9FFF'},{id:'proposal',name:'Proposal',color:'#A855F7'},
   {id:'won',name:'Won',color:'#22C55E'},{id:'lost',name:'Lost',color:'#EF4444'}];
 export const stageOf=id=>STAGES.find(s=>s.id===id);
+
+// The gaps Lead Finder flags a business for. `label` is the filter-chip text; `color` themes the
+// per-row pills. Detection logic + per-gap severity weights live in detectGaps() (helpers.js).
+export const GAP_TYPES=[
+  {type:'no_website',label:'No website',color:'#EF4444'},
+  {type:'low_rating',label:'Low rating',color:'#F5A524'},
+  {type:'few_reviews',label:'Few reviews',color:'#F5A524'},
+  {type:'odd_status',label:'Status issue',color:'#EF4444'},
+];
+export const gapOf=type=>GAP_TYPES.find(g=>g.type===type);
+
 export const CATS=['HVAC','Plumbing','Restaurant','Auto Repair','Dental','Landscaping','Fitness','Pet Grooming','Nail Salon'];
 // Lead Finder searches every category behind the scenes (no user-picked type) and labels each
 // result from what Google actually returns — see CAT_QUERY_TERMS / inferCategory below.
@@ -49,7 +60,7 @@ export const POOL=[]; // prospects on the map, not yet in CRM
 export const addedProspects=new Set();
 
 /* ---- app view state (an object, so property mutation is visible everywhere) ---- */
-export const state={view:'areas',rep:'all',finderCat:'',finderArea:'',finderResults:[],finderAdded:new Set(),calWeekOffset:0};
+export const state={view:'areas',rep:'all',finderCat:'',finderGap:'',finderSort:'score',finderArea:'',finderScanned:0,finderResults:[],finderAdded:new Set(),calWeekOffset:0};
 
 /* ---- Google Maps / Places credentials (reassignable) ---- */
 export let GOOGLE_KEY=localStorage.getItem('lg_google_key')||import.meta.env.VITE_GOOGLE_API_KEY||'';       // Maps JS key — client-side by necessity, protected by HTTP referrer restriction

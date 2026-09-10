@@ -1,8 +1,8 @@
 // Lead Finder view: searches Google Places across every category for an area, lists results, and
 // adds them to the CRM. Also owns the low-level searchPlaces() proxy call used by the map search.
-import {$,scorePill,placeToBusiness} from './helpers.js';
+import {$,scorePill,placeToBusiness,gapChips} from './helpers.js';
 import {ic} from './icons.js';
-import {CATS,CAT_QUERY_TERMS,AREA_SUGGESTIONS,addedProspects,state,setLivePool,LEADS,GOOGLE_KEY} from './state.js';
+import {CATS,CAT_QUERY_TERMS,AREA_SUGGESTIONS,GAP_TYPES,addedProspects,state,setLivePool,LEADS,GOOGLE_KEY} from './state.js';
 import {apiFetch,dbError} from './sb.js';
 import {map,drawMarkers} from './maps.js';
 import {pickRepForNewLead,alreadyInCRM,saveNewLead} from './data.js';
@@ -24,19 +24,17 @@ export function pickArea(a){ $('#farea').value=a; hideAreaSuggest(); }
 export function hideAreaSuggest(){ const el=$('#areaSuggest'); if(el){el.classList.remove('open');} }
 
 export function renderFinder(){
-  $('#v-finder').innerHTML=`<div class="viewhead"><div><div class="t">Lead Finder</div><div class="s">Search an area via Google Places — every business type at once, categorized from what's actually found</div></div></div>
+  $('#v-finder').innerHTML=`<div class="viewhead"><div><div class="t">Lead Finder</div><div class="s">Search an area via Google Places — flags every business with a gap you can pitch and tags it with the reason</div></div></div>
     <div class="card" style="margin-bottom:16px">
       <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
         <div style="flex:1;min-width:220px" class="area-suggest-wrap"><div class="flbl">Area</div>
           <input id="farea" autocomplete="off" value="Mississauga, ON" style="width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--text)"
             oninput="renderAreaSuggest()" onfocus="renderAreaSuggest(true)" onblur="setTimeout(hideAreaSuggest,150)">
           <div id="areaSuggest" class="area-suggest"></div></div>
-        <div><div class="flbl">Filter</div>
-          <label style="display:flex;align-items:center;gap:7px;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:11px 12px;font-size:13px"><input type="checkbox" id="fnoweb"> No website only</label></div>
         <button class="btn" id="findbtn" onclick="runFinder()"${GOOGLE_KEY?'':' disabled style="opacity:.5;cursor:not-allowed"'}>${ic('search','#fff')} Find leads</button>
       </div>
     </div>
-    <div id="finderresults"><div class="empty">${ic('search','#5C6E8A',40)}<div>${GOOGLE_KEY?'Enter an area and run a search.':'No Google API key configured — set VITE_GOOGLE_API_KEY in .env.local, or add one via Connect Google Maps on the Map tab.'}</div><div style="font-size:12px;margin-top:4px">Searches ${CATS.length} categories at once and tags each result by its actual Google Places type.</div></div></div>`;
+    <div id="finderresults"><div class="empty">${ic('search','#5C6E8A',40)}<div>${GOOGLE_KEY?'Enter an area and run a search.':'No Google API key configured — set VITE_GOOGLE_API_KEY in .env.local, or add one via Connect Google Maps on the Map tab.'}</div><div style="font-size:12px;margin-top:4px">Searches ${CATS.length} categories at once, keeps only businesses with a gap — no website, low rating, few reviews, or an odd status — and scores each by gap severity × demand.</div></div></div>`;
 }
 
 /* ---- Google Places API (New) — searchText, via our /api/places-search proxy ---- */
@@ -52,7 +50,7 @@ export async function searchPlaces(textQuery,near){
 }
 
 export async function runFinder(){
-  const area=$('#farea').value.trim(), noweb=$('#fnoweb').checked;
+  const area=$('#farea').value.trim();
   const out=$('#finderresults'), btn=$('#findbtn');
   if(!GOOGLE_KEY){
     out.innerHTML='<div class="empty">'+ic('search','#5C6E8A',34)+'<div>No Google API key configured — set VITE_GOOGLE_API_KEY in .env.local, or add one via Connect Google Maps on the Map tab.</div></div>';
@@ -82,11 +80,13 @@ export async function runFinder(){
         if(biz.lat&&biz.lng)res.push(biz);
       });
     });
-    if(noweb)res=res.filter(b=>!b.website);
+    const scanned=res.length;
+    res=res.filter(b=>b.gaps&&b.gaps.length); // only businesses with something to pitch
     setLivePool(res);                          // feed the map
     state.finderResults=res;
     state.finderArea=area;
-    state.finderCat='';
+    state.finderScanned=scanned;
+    state.finderCat=''; state.finderGap=''; state.finderSort='score';
     renderFinderResults(res,area);
     if(state.view==='areas'&&map)drawMarkers();
   }catch(err){
@@ -94,20 +94,35 @@ export async function runFinder(){
   }finally{btn.disabled=false; btn.style.opacity=1;}
 }
 export function setFinderCat(cat){ state.finderCat=cat; renderFinderResults(state.finderResults,state.finderArea); }
+export function setFinderGap(gap){ state.finderGap=gap; renderFinderResults(state.finderResults,state.finderArea); }
+export function setFinderSort(sort){ state.finderSort=sort; renderFinderResults(state.finderResults,state.finderArea); }
 
 function renderFinderResults(res,area){
   const out=$('#finderresults');
-  if(!res.length){out.innerHTML='<div class="empty">'+ic('search','#5C6E8A',34)+'<div>No businesses matched.</div></div>';return;}
+  const scanned=state.finderScanned||0;
+  if(!res.length){out.innerHTML='<div class="empty">'+ic('search','#5C6E8A',34)+`<div>Scanned ${scanned} businesses — none had a gap worth pitching (all had a site, a solid rating, and enough reviews).</div></div>`;return;}
   const cats=[...new Set(res.map(p=>p.cat))].sort();
-  const rows=state.finderCat?res.filter(p=>p.cat===state.finderCat):res;
-  out.innerHTML=`<div style="margin:6px 2px 12px;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${res.length} businesses in ${area||'your area'} <span class="pill" style="background:#22C55E1a;color:#22C55E"><span class="d" style="background:#22C55E"></span>live · Google Places</span></div>
-    <div class="filterrow" style="margin-bottom:12px">${['all',...cats].map(c=>`<button class="chip ${(c==='all'?'':c)===state.finderCat?'on':''}" onclick="setFinderCat('${c==='all'?'':c}')">${c==='all'?'All types':c} <span style="opacity:.6">${c==='all'?res.length:res.filter(p=>p.cat===c).length}</span></button>`).join('')}</div>
-    <div class="tblwrap"><table class="tbl"><thead><tr><th>Business</th><th>Category</th><th>Address</th><th>Rating</th><th>Signal</th><th>Score</th><th></th></tr></thead><tbody>
+  const gapCount=t=>res.filter(p=>p.gaps.some(g=>g.type===t)).length;
+  const sort=state.finderSort||'score';
+  let rows=res.slice();
+  if(state.finderCat)rows=rows.filter(p=>p.cat===state.finderCat);
+  if(state.finderGap)rows=rows.filter(p=>p.gaps.some(g=>g.type===state.finderGap));
+  rows.sort((a,b)=>sort==='rating'?(b.rating||0)-(a.rating||0):sort==='reviews'?(b.reviewCount||0)-(a.reviewCount||0):b.score-a.score);
+  const chip=(on,label,count,fn)=>`<button class="chip ${on?'on':''}" onclick="${fn}">${label} <span style="opacity:.6">${count}</span></button>`;
+  out.innerHTML=`<div style="margin:6px 2px 12px;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${res.length} flagged of ${scanned} scanned in ${area||'your area'} <span class="pill" style="background:#22C55E1a;color:#22C55E"><span class="d" style="background:#22C55E"></span>live · Google Places</span></div>
+    <div class="filterrow" style="margin-bottom:8px">${chip(!state.finderCat,'All types',res.length,"setFinderCat('')")}${cats.map(c=>chip(c===state.finderCat,c,res.filter(p=>p.cat===c).length,`setFinderCat('${c}')`)).join('')}</div>
+    <div class="filterrow" style="margin-bottom:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+      ${chip(!state.finderGap,'Any gap',res.length,"setFinderGap('')")}${GAP_TYPES.filter(g=>gapCount(g.type)).map(g=>chip(g.type===state.finderGap,g.label,gapCount(g.type),`setFinderGap('${g.type}')`)).join('')}
+      <span style="flex:1"></span>
+      <span style="font-size:12px;color:var(--dim)">Sort</span>
+      <div class="seg">${[['score','Score'],['rating','Rating'],['reviews','Reviews']].map(([k,l])=>`<button class="${sort===k?'on':''}" onclick="setFinderSort('${k}')">${l}</button>`).join('')}</div>
+    </div>
+    <div class="tblwrap"><table class="tbl"><thead><tr><th>Business</th><th>Category</th><th>Address</th><th>Rating</th><th>Why flagged</th><th>Score</th><th></th></tr></thead><tbody>
     ${rows.map(p=>{const i=res.indexOf(p);return `<tr><td><div class="biz"><b>${p.name}</b><small>${p.city||''} · ${p.phone||'no phone'}</small></div></td>
       <td class="nowrap" style="font-size:12px;color:var(--muted)">${p.cat}</td>
       <td class="nowrap" style="font-size:12px;color:var(--muted)">${p.street||'—'}</td>
       <td class="mono nowrap">★ ${p.rating||'—'} · ${p.reviewCount||0}</td>
-      <td>${p.website?'<span style="color:var(--muted);font-size:12px">has site</span>':'<span class="nowww">no website</span>'}</td>
+      <td>${gapChips(p)}</td>
       <td>${scorePill(p.score)}</td>
       <td><button class="btn ghost" id="add-${i}" onclick="addFromFinder(${i})" style="padding:6px 12px">${ic('plus')} Add</button></td></tr>`;}).join('')}
     </tbody></table></div>`;
