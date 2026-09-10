@@ -6,7 +6,7 @@ import {ic} from './icons.js';
 import {state,LEADS,REPS,EVENTS,setCurrentUserName} from './state.js';
 import {sb} from './sb.js';
 import {setCrmView,setCrmFilter} from './state.js';
-import {loadAllData,reEnrich,setStage,deleteLead} from './data.js';
+import {loadAllData,reEnrich,setStage,deleteLead,saveLeadNotes,saveLeadNextAction} from './data.js';
 import {go,render,updateBadges,renderRepFilter} from './router.js';
 import {renderCRM} from './crm.js';
 import {renderCal} from './calendar.js';
@@ -42,7 +42,7 @@ Object.assign(window,{
   $,state,go,render,updateBadges,
   setCrmView,setCrmFilter,renderCRM,
   openLead,closeDrawer,openConfirm,closeConfirm,doConfirm,askDeleteLead,setStage,deleteLead,
-  reEnrich,
+  saveLeadNotes,saveLeadNextAction,reEnrich,
   regenAI,regenEmail,sendGmail,sendDefault,copyEmail,
   runFinder,addFromFinder,setFinderCat,setFinderGap,setFinderSort,renderAreaSuggest,pickArea,hideAreaSuggest,
   renderCal,openMeetingModal,onMeetLeadChange,closeMeetingModal,saveMeetingModal,askDeleteMeeting,

@@ -287,6 +287,11 @@
   .dbody{padding:18px 22px}
   .dsec{margin-bottom:22px}
   .dsec .st{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:600;margin-bottom:11px}
+  .histlog{display:flex;flex-direction:column;gap:2px;max-height:190px;overflow:auto}
+  .histrow{display:flex;gap:10px;padding:7px 2px;font-size:12.5px;align-items:flex-start}
+  .histdot{width:7px;height:7px;border-radius:50%;margin-top:5px;flex:none}
+  .histbody{flex:1;color:var(--text)}
+  .histbody time{display:block;color:var(--dim);font-size:11px;font-family:var(--mono);margin-top:2px}
   .kv2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
   .kv2 .k{color:var(--muted);font-size:11.5px}
   .kv2 .v{font-weight:600;font-size:13.5px;margin-top:2px}

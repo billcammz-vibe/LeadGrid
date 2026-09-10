@@ -5,6 +5,8 @@ import {stageOf,LEADS,REPS,POOL,livePool,state,gapOf,STREETS,FSA,PLET,REVIEW_THE
 export const $=s=>document.querySelector(s);
 export const money=n=>'$'+n.toLocaleString();
 export const cap=s=>s?s[0].toUpperCase()+s.slice(1):s;
+export const esc=s=>(''+(s??'')).replace(/&/g,'&amp;').replace(/</g,'&lt;');
+export const escAttr=s=>esc(s).replace(/"/g,'&quot;');
 export function timeAgo(dateStr){
   if(!dateStr)return'';
   const mins=Math.floor((Date.now()-new Date(dateStr).getTime())/60000);

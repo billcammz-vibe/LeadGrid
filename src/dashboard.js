@@ -1,6 +1,7 @@
-// Dashboard view: KPIs, funnel, and a recent-activity feed derived from lead timestamps.
-import {$,visibleLeads,repById,timeAgo,money,cap} from './helpers.js';
-import {STAGES,stageOf,currentUserName} from './state.js';
+// Dashboard view: KPIs, funnel, and a recent-activity feed off the real lead_history log.
+import {$,visibleLeads,leadById,timeAgo,money,cap,esc} from './helpers.js';
+import {STAGES,currentUserName} from './state.js';
+import {recentHistory,HISTORY_KINDS} from './history.js';
 import {ic} from './icons.js';
 
 export function renderDash(){
@@ -16,11 +17,10 @@ export function renderDash(){
   const counts=STAGES.map(s=>({s,n:ls.filter(l=>l.stage===s.id).length}));
   const maxc=Math.max(...counts.map(c=>c.n),1);
 
-  // Real recent activity, derived from actual lead timestamps — no dedicated audit-log table needed.
-  const feed=[...ls].filter(l=>l.createdAt||l.updatedAt).sort((a,b)=>new Date(b.updatedAt||b.createdAt)-new Date(a.updatedAt||a.createdAt)).slice(0,8).map(l=>{
-    const s=stageOf(l.stage),r=repById(l.rep);
-    const isNew=!l.updatedAt||l.updatedAt===l.createdAt;
-    return{t:`${l.name} ${isNew?'added to pipeline':'moved to '+s.name}`,c:s.color,by:r?r.name:'Unassigned',ago:timeAgo(l.updatedAt||l.createdAt)};
+  // Recent activity straight off the lead_history log.
+  const feed=recentHistory(8).map(h=>{
+    const l=leadById(h.leadId), k=HISTORY_KINDS[h.kind]||{color:'#7C8AA0'};
+    return {t:`<b>${l?esc(l.name):'A lead'}</b> — ${esc(h.body)}`,c:k.color,ago:timeAgo(h.at)};
   });
 
   $('#v-dashboard').innerHTML=`
@@ -37,7 +37,7 @@ export function renderDash(){
         <div class="funnel">${counts.map(c=>`<div class="fstage"><span class="nm">${c.s.name}</span><div class="bar"><div class="fill" style="width:${c.n/maxc*100}%;background:${c.s.color}"></div></div><span class="n">${c.n}</span></div>`).join('')}</div>
       </div>
       <div class="card"><h3>Recent activity</h3>
-        <div class="feed">${feed.length?feed.map(f=>`<div class="fitem"><span class="dot" style="background:${f.c}"></span><div class="tx">${f.t}<div><time>${f.by} · ${f.ago}</time></div></div></div>`).join(''):'<div style="color:var(--dim);font-size:13px">No activity yet.</div>'}</div>
+        <div class="feed">${feed.length?feed.map(f=>`<div class="fitem"><span class="dot" style="background:${f.c}"></span><div class="tx">${f.t}<div><time>${f.ago}</time></div></div></div>`).join(''):'<div style="color:var(--dim);font-size:13px">No activity yet.</div>'}</div>
       </div>
     </div>`;
 }

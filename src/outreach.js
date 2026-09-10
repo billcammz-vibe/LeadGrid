@@ -1,18 +1,16 @@
 // AI outreach layer. The "Why reach out" blurb and review summary are still local heuristics;
 // the outreach email is drafted by Claude via /api/generate-email (key stays server-side — see
 // api/lib/generateEmail.js). Drafts land in editable fields; nothing sends automatically.
-import {$,leadById} from './helpers.js';
+import {$,leadById,esc,escAttr} from './helpers.js';
 import {REVIEW_THEMES,stageOf} from './state.js';
 import {apiFetch} from './sb.js';
+import {addHistory} from './history.js';
 import {ic} from './icons.js';
 
 let curLead=null, aiSeed=0, emailVariant=0;
 export const setCurLead=v=>{curLead=v;};
 export const setAiSeed=v=>{aiSeed=v;};
 export {aiSeed};
-
-const esc=s=>(''+s).replace(/&/g,'&amp;').replace(/</g,'&lt;');
-const escAttr=s=>esc(s).replace(/"/g,'&quot;');
 
 function ratingWord(r){return r>=4.6?'highly-rated':r>=4.2?'well-reviewed':r>=3.8?'solidly-rated':'up-and-coming';}
 function priorityWord(s){return s>=75?'top-priority':s>=58?'a strong':s>=45?'a moderate':'a lower-priority';}
@@ -114,6 +112,7 @@ export function regenAI(){
 export function regenEmail(){ emailVariant++; loadEmail(leadById(curLead)); }
 
 function emailFields(){const l=leadById(curLead);return {to:l.email||'',su:($('#ai-subj')||{}).value||'',body:($('#ai-body')||{}).value||''};}
-export function sendGmail(){const{to,su,body}=emailFields();window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(su)+'&body='+encodeURIComponent(body),'_blank');}
-export function sendDefault(){const{to,su,body}=emailFields();window.location.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(su)+'&body='+encodeURIComponent(body);}
-export function copyEmail(){const{su,body}=emailFields();const txt=su+'\n\n'+body;(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{const b=$('#copybtn');if(b){b.textContent='Copied ✓';setTimeout(()=>b.textContent='Copy',1400);}}).catch(()=>{const t=$('#ai-body');if(t){t.focus();t.select();document.execCommand&&document.execCommand('copy');}});}
+function logOutreach(how){const su=($('#ai-subj')||{}).value||'';if(curLead)addHistory(curLead,'email_drafted',how+(su?' — “'+su+'”':''),{});}
+export function sendGmail(){const{to,su,body}=emailFields();logOutreach('Opened outreach in Gmail');window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to)+'&su='+encodeURIComponent(su)+'&body='+encodeURIComponent(body),'_blank');}
+export function sendDefault(){const{to,su,body}=emailFields();logOutreach('Opened outreach in mail app');window.location.href='mailto:'+encodeURIComponent(to)+'?subject='+encodeURIComponent(su)+'&body='+encodeURIComponent(body);}
+export function copyEmail(){const{su,body}=emailFields();const txt=su+'\n\n'+body;(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>{const b=$('#copybtn');if(b){b.textContent='Copied ✓';setTimeout(()=>b.textContent='Copy',1400);}logOutreach('Copied outreach email');}).catch(()=>{const t=$('#ai-body');if(t){t.focus();t.select();document.execCommand&&document.execCommand('copy');}});}

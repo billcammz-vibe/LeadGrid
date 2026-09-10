@@ -7,9 +7,9 @@
 /* ---- pipeline + category constants ---- */
 export const STAGES=[
   {id:'new',name:'New',color:'#7C8AA0'},{id:'contacted',name:'Contacted',color:'#F5A524'},
-  {id:'qualified',name:'Qualified',color:'#4D9FFF'},{id:'proposal',name:'Proposal',color:'#A855F7'},
+  {id:'replied',name:'Replied',color:'#4D9FFF'},
   {id:'won',name:'Won',color:'#22C55E'},{id:'lost',name:'Lost',color:'#EF4444'}];
-export const stageOf=id=>STAGES.find(s=>s.id===id);
+export const stageOf=id=>STAGES.find(s=>s.id===id)||STAGES[0];
 
 // The gaps Lead Finder flags a business for. `label` is the filter-chip text; `color` themes the
 // per-row pills. Detection logic + per-gap severity weights live in detectGaps() (helpers.js).
@@ -56,6 +56,7 @@ export const AI_SUGG=['Top leads to call today','Which rep is underloaded?','Sum
 export const LEADS=[];
 export const REPS=[];
 export const EVENTS=[];
+export const HISTORY=[]; // lead_history rows: {id,leadId,at:Date,kind,body,meta}
 export const POOL=[]; // prospects surfaced by search, not yet in CRM
 export const addedProspects=new Set();
 

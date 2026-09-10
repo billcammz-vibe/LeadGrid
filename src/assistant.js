@@ -30,8 +30,8 @@ function aiAnswer(q){
     const area=ls.filter(l=>targetCities.includes(l.city));
     const val=area.reduce((s,l)=>s+l.value,0);const noweb=area.filter(l=>!l.website).length;
     const load=REPS.map(r=>({r,n:area.filter(l=>l.rep===r.id).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
-    const closest=area.filter(l=>l.stage==='proposal').sort((a,b)=>b.value-a.value)[0];
-    return `<b>${targetCities.join(' + ')}</b><div class="mrow2"><span>Leads</span><span>${area.length}</span></div><div class="mrow2"><span>Pipeline</span><span>${money(val)}</span></div><div class="mrow2"><span>No-website</span><span>${noweb}</span></div>${load.length?`<div class="mrow2"><span>Most leads here</span><span>${load[0].r.name}</span></div>`:''}<div style="margin-top:8px;color:var(--muted)">${closest?closest.name+' is at proposal — closest to closing.':'Nothing at proposal stage here yet.'}</div>`;
+    const closest=area.filter(l=>l.stage==='replied').sort((a,b)=>b.value-a.value)[0];
+    return `<b>${targetCities.join(' + ')}</b><div class="mrow2"><span>Leads</span><span>${area.length}</span></div><div class="mrow2"><span>Pipeline</span><span>${money(val)}</span></div><div class="mrow2"><span>No-website</span><span>${noweb}</span></div>${load.length?`<div class="mrow2"><span>Most leads here</span><span>${load[0].r.name}</span></div>`:''}<div style="margin-top:8px;color:var(--muted)">${closest?closest.name+' has replied — closest to closing.':'Nobody has replied here yet.'}</div>`;
   }
   if(q.includes('website')||q.includes('no-website')||q.includes('opportun')){
     const nw=ls.filter(l=>!l.website&&!['won','lost'].includes(l.stage)).sort((a,b)=>b.value-a.value).slice(0,5);

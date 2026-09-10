@@ -3,8 +3,9 @@
 // then persist in the background; a failed write surfaces via dbError() instead of vanishing. No
 // rollback-on-failure or realtime multi-tab sync — this is a single-owner tool.
 import {sb,dbError,apiFetch} from './sb.js';
-import {LEADS,REPS,EVENTS,addedProspects,state} from './state.js';
+import {LEADS,REPS,EVENTS,HISTORY,addedProspects,state,stageOf} from './state.js';
 import {leadById,prospectById,detectGaps,gapSummary,demandSignal,scoreFor} from './helpers.js';
+import {addHistory,dbHistoryToClient,dropHistoryFor} from './history.js';
 import {updateBadges,render} from './router.js';
 import {closeDrawer,openLead} from './drawer.js';
 import {renderCRM} from './crm.js';
@@ -19,6 +20,7 @@ export function dbLeadToClient(row){
     gaps:row.gaps||null,gapSummary:row.gap_summary||'',
     demandSignal:row.demand_signal!=null?+row.demand_signal:null,
     stage:row.stage,rep:row.rep_id,
+    notes:row.notes||'',nextAction:row.next_action||'',nextActionAt:row.next_action_at||null,
     _enrichChecked:row.enrich_checked,_enrichOk:row.enrich_ok,_enrichNote:row.enrich_note,
     createdAt:row.created_at,updatedAt:row.updated_at};
   // Rows created before the gap columns existed store gaps as NULL — analyse them from the
@@ -41,7 +43,8 @@ export function clientLeadToDb(l){
     socials:l.socials||{},reviews:l.reviews||[],hot:!!l.hot,score:l.score,
     gaps:l.gaps||[],gap_summary:l.gapSummary||null,
     demand_signal:l.demandSignal!=null?l.demandSignal:null,
-    stage:l.stage,rep_id:l.rep||null,
+    stage:l.stage,notes:l.notes||null,next_action:l.nextAction||null,next_action_at:l.nextActionAt||null,
+    rep_id:l.rep||null,
     enrich_checked:!!l._enrichChecked,enrich_ok:l._enrichOk==null?null:!!l._enrichOk,enrich_note:l._enrichNote||null};
 }
 export function dbEventToClient(row){
@@ -52,17 +55,20 @@ export function clientEventToDb(e){
 }
 export async function loadAllData(retrying){
   try{
-    const[repsRes,leadsRes,eventsRes]=await Promise.all([
+    const[repsRes,leadsRes,eventsRes,historyRes]=await Promise.all([
       sb.from('reps').select('*').order('created_at'),
       sb.from('leads').select('*').order('created_at'),
       sb.from('events').select('*').order('starts_at'),
+      sb.from('lead_history').select('*').order('at'),
     ]);
     if(repsRes.error)throw repsRes.error;
     if(leadsRes.error)throw leadsRes.error;
     if(eventsRes.error)throw eventsRes.error;
+    if(historyRes.error)throw historyRes.error;
     REPS.length=0;REPS.push(...repsRes.data);
     LEADS.length=0;LEADS.push(...leadsRes.data.map(dbLeadToClient));
     EVENTS.length=0;EVENTS.push(...eventsRes.data.map(dbEventToClient));
+    HISTORY.length=0;HISTORY.push(...historyRes.data.map(dbHistoryToClient));
     addedProspects.clear();
     LEADS.forEach(l=>{if(l.sourceId)addedProspects.add(l.sourceId);});
   }catch(err){
@@ -93,7 +99,7 @@ export const alreadyInCRM=sourceId=>addedProspects.has(sourceId)||LEADS.some(l=>
 // "already in CRM" — not an error worth alarming the user about.
 export function saveNewLead(nl,sourceId){
   sb.from('leads').insert(clientLeadToDb(nl)).then(({error})=>{
-    if(!error)return;
+    if(!error){addHistory(nl.id,'created','Added from Lead Finder'+(nl.gapSummary?' — '+nl.gapSummary:''),{});return;}
     if(error.code==='23505'){addedProspects.add(sourceId);return;}
     dbError('Failed to save lead — '+error.message);
   });
@@ -141,11 +147,38 @@ export function deleteLead(id){
   if(LEADS[i].sourceId)addedProspects.delete(LEADS[i].sourceId);
   LEADS.splice(i,1);
   for(let j=EVENTS.length-1;j>=0;j--){if(EVENTS[j].leadId===id)EVENTS.splice(j,1);} // DB cascades the row; array doesn't auto-sync
+  dropHistoryFor(id);                                                               // DB cascades; array doesn't
   closeDrawer(); updateBadges();
   render(state.view);
   sb.from('leads').delete().eq('id',id).then(({error})=>{if(error)dbError('Failed to delete lead — '+error.message);});
 }
 export function setStage(id,stage){
-  const l=leadById(id); l.stage=stage; openLead(id); render(state.view);
+  const l=leadById(id); if(!l||l.stage===stage)return;
+  const from=l.stage; l.stage=stage;
+  addHistory(id,'stage_change','Moved to '+stageOf(stage).name,{from,to:stage});
+  openLead(id); render(state.view);
   sb.from('leads').update({stage}).eq('id',id).then(({error})=>{if(error)dbError('Failed to save stage change — '+error.message);});
+}
+// Notes = a single freeform field, saved on blur. next-action = short text + optional date.
+// Each save that actually changes something drops a history row so the timeline shows it.
+export function saveLeadNotes(id){
+  const l=leadById(id); if(!l)return;
+  const el=document.querySelector('#lead-notes'); if(!el)return;
+  const val=el.value.trim();
+  if(val===(l.notes||''))return;
+  l.notes=val;
+  addHistory(id,'note',val?('“'+(val.length>90?val.slice(0,90)+'…':val)+'”'):'Note cleared',{});
+  sb.from('leads').update({notes:val||null}).eq('id',id).then(({error})=>{if(error)dbError('Failed to save note — '+error.message);});
+}
+export function saveLeadNextAction(id){
+  const l=leadById(id); if(!l)return;
+  const t=document.querySelector('#lead-next'), d=document.querySelector('#lead-next-at');
+  if(!t)return;
+  const text=t.value.trim(), at=(d&&d.value)||null;
+  if(text===(l.nextAction||'')&&at===(l.nextActionAt?String(l.nextActionAt).slice(0,10):null))return;
+  l.nextAction=text; l.nextActionAt=at;
+  addHistory(id,'next_action',text?('Next: '+text+(at?' ('+at+')':'')):'Next action cleared',{at});
+  sb.from('leads').update({next_action:text||null,next_action_at:at}).eq('id',id)
+    .then(({error})=>{if(error)dbError('Failed to save next action — '+error.message);});
+  render(state.view);
 }
