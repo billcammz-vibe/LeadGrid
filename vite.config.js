@@ -3,6 +3,7 @@ import { fetchSocialsFor } from './api/lib/extractSocials.js';
 import { searchPlacesText } from './api/lib/placesSearch.js';
 import { geocodeAddress } from './api/lib/geocode.js';
 import { requireAuth } from './api/lib/requireAuth.js';
+import { rateLimit } from './api/lib/cache.js';
 
 function readJsonBody(req) {
   return new Promise((resolve) => {
@@ -22,8 +23,9 @@ function backendApiPlugin() {
     configureServer(server) {
       server.middlewares.use('/api/socials', async (req, res) => {
         res.setHeader('Content-Type', 'application/json');
+        let user;
         try {
-          await requireAuth(req);
+          user = await requireAuth(req);
         } catch (err) {
           res.statusCode = err.status || 401;
           res.end(JSON.stringify({ error: err.message }));
@@ -33,8 +35,14 @@ function backendApiPlugin() {
         const url = params.get('url') || '';
         const name = params.get('name') || '';
         const city = params.get('city') || '';
-        const result = await fetchSocialsFor({ url, name, city });
-        res.end(JSON.stringify(result));
+        try {
+          rateLimit(user.id);
+          const result = await fetchSocialsFor({ url, name, city });
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.statusCode = err.status || 500;
+          res.end(JSON.stringify({ error: err.message }));
+        }
       });
 
       server.middlewares.use('/api/places-search', async (req, res) => {
@@ -44,8 +52,9 @@ function backendApiPlugin() {
           return;
         }
         res.setHeader('Content-Type', 'application/json');
+        let user;
         try {
-          await requireAuth(req);
+          user = await requireAuth(req);
         } catch (err) {
           res.statusCode = err.status || 401;
           res.end(JSON.stringify({ error: err.message }));
@@ -53,6 +62,7 @@ function backendApiPlugin() {
         }
         const body = await readJsonBody(req);
         try {
+          rateLimit(user.id);
           const places = await searchPlacesText(body);
           res.end(JSON.stringify({ places }));
         } catch (err) {
@@ -63,8 +73,9 @@ function backendApiPlugin() {
 
       server.middlewares.use('/api/geocode', async (req, res) => {
         res.setHeader('Content-Type', 'application/json');
+        let user;
         try {
-          await requireAuth(req);
+          user = await requireAuth(req);
         } catch (err) {
           res.statusCode = err.status || 401;
           res.end(JSON.stringify({ error: err.message }));
@@ -72,6 +83,7 @@ function backendApiPlugin() {
         }
         const params = new URL(req.url, 'http://localhost').searchParams;
         try {
+          rateLimit(user.id);
           const result = await geocodeAddress(params.get('address') || '');
           res.end(JSON.stringify(result));
         } catch (err) {

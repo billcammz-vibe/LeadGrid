@@ -1,9 +1,10 @@
 # LeadGrid — local setup
 
-A single-file B2B lead-generation prototype: interactive Google Maps view, CRM, Lead Finder
-(Google Places), routes, calendar, reps, and an AI outreach drawer. Everything lives in `index.html`
-(HTML + CSS + JS, dependencies loaded from CDN). No build step required, though this repo also has a
-minimal Vite dev server set up (`npm run dev`) for live reload while editing.
+A B2B lead-generation prototype: interactive Google Maps view, CRM, Lead Finder
+(Google Places), routes, calendar, reps, and an AI outreach drawer. Markup lives in `index.html`,
+styles in `styles.css`, and the app logic is split into ES modules under `src/` (entry: `src/main.js`),
+bundled by Vite. Run it with the Vite dev server (`npm run dev`); `npm run build` produces a static
+bundle in `dist/`, and `npm run lint` checks the modules.
 
 ## Google Cloud setup (required — the map won't load without this)
 
@@ -54,6 +55,12 @@ npx vercel        # or: npx netlify deploy
 Remember to add the deployed URL to the API key's HTTP referrer restriction in Google Cloud Console.
 
 ## Files
-- `index.html` — the whole app
+- `index.html` — page markup + the login/modal/drawer shells
+- `styles.css` — all styling
+- `src/` — app logic as ES modules (`main.js` is the entry; `state.js` holds shared state, then one
+  module per feature: `maps.js`, `crm.js`, `finder.js`, `calendar.js`, `routes.js`, `reps.js`,
+  `drawer.js`, `outreach.js`, `assistant.js`, `dashboard.js`, plus `router.js`, `data.js`, `sb.js`,
+  `helpers.js`, `icons.js`)
+- `api/` — serverless proxies for the paid Google/Tavily calls (also served in dev via `vite.config.js`)
 - `places-search-route.ts` — secure server-side Google Places route for a Next.js build
 - `CLAUDE_CODE_PROMPT.md` — paste into Claude Code to scaffold the local dev server

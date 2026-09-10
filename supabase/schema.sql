@@ -51,6 +51,13 @@ $$ language plpgsql;
 create trigger leads_set_updated_at before update on leads
   for each row execute function set_updated_at();
 
+-- One CRM lead per source business: source_id is the Google Place id a lead was imported from,
+-- so a unique index on it (where set) stops the same business being added twice. Partial, so
+-- manually-created leads with a null source_id are unaffected.
+create unique index if not exists leads_source_id_unique
+  on leads (source_id)
+  where source_id is not null;
+
 alter table reps enable row level security;
 alter table leads enable row level security;
 alter table events enable row level security;
