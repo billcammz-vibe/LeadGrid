@@ -60,10 +60,11 @@ export function renderAI(l,seed){
 }
 
 /* ---- Claude-drafted outreach email ---- */
-const ANGLE_LABEL={no_website:'no website',few_reviews:'few reviews',low_rating:'low rating',odd_status:'listing status'};
+const ANGLE_LABEL={no_website:'no website',weak_site:'weak site',few_reviews:'few reviews',low_rating:'low rating',odd_status:'listing status'};
 function leadPayload(l){
   return {name:l.name,cat:l.cat,city:l.city,province:l.province,rating:l.rating,
-    reviewCount:l.reviewCount,website:!!l.website,web:l.web,gaps:l.gaps||[],gapSummary:l.gapSummary||''};
+    reviewCount:l.reviewCount,website:!!l.website,web:l.web,gaps:l.gaps||[],gapSummary:l.gapSummary||'',
+    siteAuditIssues:(l.siteAudit&&l.siteAudit.issues)||[]};
 }
 async function loadEmail(l){
   const box=$('#ai-email'); if(!box)return;

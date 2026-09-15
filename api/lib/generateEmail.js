@@ -15,16 +15,24 @@ const SENDER = {
   city: 'Toronto',
 };
 
-// Mirrors detectGaps() severity in src/helpers.js — used only to pick the primary gap to pitch on.
-const GAP_SEV = { no_website: 0.70, odd_status: 0.60, low_rating: 0.28, few_reviews: 0.16 };
+// Fallback ranking when a gap arrives without its own `sev` (older/hand-built callers) — mirrors
+// detectGaps() in src/helpers.js. Prefer the gap's own `sev` when present: weak_site's severity
+// varies with how many site issues were found, so a static table can't rank it accurately.
+const GAP_SEV = { no_website: 0.70, odd_status: 0.60, weak_site: 0.40, low_rating: 0.28, few_reviews: 0.16 };
 
 // A distinct pitch angle per primary gap. The low_rating angle is deliberately tactful — never
-// criticise their rating.
+// criticise their rating. weak_site references the specific issues passed in `facts` rather than
+// enumerating them here, since which combination of speed/mobile/HTTPS/booking varies per lead.
 const ANGLES = {
   no_website:
     'Primary gap: NO WEBSITE. Lead with — people find them on Google but have no way to book, ' +
     'check hours, or judge them beyond the listing, so some go to a competitor who looks more ' +
     'polished. Ask: offer a free one-page mockup so they can see it, no obligation.',
+  weak_site:
+    'Primary gap: WEAK WEBSITE. They already have a site, so lead with that — then mention only ' +
+    'the specific issues listed under "Website issues found" below (do not invent or assume any ' +
+    'issue not listed). Frame it as visitors bouncing before they book because of that, not as a ' +
+    'criticism of the business itself. Ask: offer a free assessment or mockup of the fix.',
   few_reviews:
     'Primary gap: FEW REVIEWS despite a good rating. Lead with — the rating is strong but too few ' +
     'people see it to build trust; a simple site plus a review-ask flow turns Google traffic into ' +
@@ -41,7 +49,7 @@ const ANGLES = {
 
 function primaryGap(gaps) {
   if (!Array.isArray(gaps) || !gaps.length) return null;
-  return [...gaps].sort((a, b) => (GAP_SEV[b.type] || 0) - (GAP_SEV[a.type] || 0))[0];
+  return [...gaps].sort((a, b) => (b.sev ?? GAP_SEV[b.type] ?? 0) - (a.sev ?? GAP_SEV[a.type] ?? 0))[0];
 }
 
 async function generateEmailDraft({ lead, variant = 0 } = {}) {
@@ -61,6 +69,7 @@ async function generateEmailDraft({ lead, variant = 0 } = {}) {
       (lead.reviewCount != null ? ` from ${lead.reviewCount} reviews` : ''),
     `Website: ${lead.website ? (lead.web || 'yes') : 'none'}`,
     lead.gapSummary ? `Flagged for: ${lead.gapSummary}` : null,
+    lead.siteAuditIssues && lead.siteAuditIssues.length ? `Website issues found: ${lead.siteAuditIssues.join(', ')}` : null,
   ].filter(Boolean).join('\n');
 
   const system =

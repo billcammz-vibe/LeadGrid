@@ -15,6 +15,7 @@ export const stageOf=id=>STAGES.find(s=>s.id===id)||STAGES[0];
 // per-row pills. Detection logic + per-gap severity weights live in detectGaps() (helpers.js).
 export const GAP_TYPES=[
   {type:'no_website',label:'No website',color:'#EF4444'},
+  {type:'weak_site',label:'Weak site',color:'#F5A524'},
   {type:'low_rating',label:'Low rating',color:'#F5A524'},
   {type:'few_reviews',label:'Few reviews',color:'#F5A524'},
   {type:'odd_status',label:'Status issue',color:'#EF4444'},

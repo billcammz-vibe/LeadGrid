@@ -1,6 +1,7 @@
 // Lead Finder view: searches Google Places across every category for an area, flags businesses
-// with a gap, and adds them to the CRM. Also owns the low-level searchPlaces() proxy call.
-import {$,scorePill,placeToBusiness,gapChips} from './helpers.js';
+// with a gap, and adds them to the CRM. Also owns the low-level searchPlaces() and auditWebsite()
+// proxy calls.
+import {$,scorePill,placeToBusiness,gapChips,detectGaps,gapSummary,demandSignal,scoreFor} from './helpers.js';
 import {ic} from './icons.js';
 import {CATS,CAT_QUERY_TERMS,AREA_SUGGESTIONS,GAP_TYPES,addedProspects,state,setLivePool,LEADS} from './state.js';
 import {apiFetch,dbError} from './sb.js';
@@ -33,10 +34,11 @@ export function renderFinder(){
           <input id="farea" autocomplete="off" value="Mississauga, ON" style="width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--text)"
             oninput="renderAreaSuggest()" onfocus="renderAreaSuggest(true)" onblur="setTimeout(hideAreaSuggest,150)">
           <div id="areaSuggest" class="area-suggest"></div></div>
+        <label style="display:flex;align-items:center;gap:7px;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:11px 12px;font-size:13px;white-space:nowrap" title="Runs each site with a website through Google PageSpeed Insights (Lighthouse) for speed, mobile-friendliness, HTTPS, and an online-booking link — adds 20-40s or more per search, depending how many sites need checking"><input type="checkbox" id="fauditweb" checked> Check website quality</label>
         <button class="btn" id="findbtn" onclick="runFinder()">${ic('search','#fff')} Find leads</button>
       </div>
     </div>
-    <div id="finderresults"><div class="empty">${ic('search','#5C6E8A',40)}<div>Enter an area and run a search.</div><div style="font-size:12px;margin-top:4px">Searches ${catScopeLabel()} businesses, keeps only ones with a gap — no website, low rating, few reviews, or an odd status — and scores each by gap severity × demand.</div></div></div>`;
+    <div id="finderresults"><div class="empty">${ic('search','#5C6E8A',40)}<div>Enter an area and run a search.</div><div style="font-size:12px;margin-top:4px">Searches ${catScopeLabel()} businesses, keeps only ones with a gap — no website, a weak site (slow, not mobile-friendly, no HTTPS, no booking link), low rating, few reviews, or an odd status — and scores each by gap severity × demand.</div></div></div>`;
 }
 
 /* ---- Google Places API (New) — searchText, via our /api/places-search proxy ---- */
@@ -49,6 +51,25 @@ export async function searchPlaces(textQuery,near){
   const data=await res.json().catch(()=>({}));
   if(!res.ok)throw new Error(data.error||(res.status+' '+res.statusText));
   return data.places||[];
+}
+
+/* ---- website quality audit (PageSpeed Insights / Lighthouse), via our /api/site-audit proxy ---- */
+export async function auditWebsite(url){
+  const res=await apiFetch('/api/site-audit',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({url})
+  });
+  const data=await res.json().catch(()=>({}));
+  if(!res.ok)throw new Error(data.error||(res.status+' '+res.statusText));
+  return data;
+}
+// Runs `fn` over `items` with at most `limit` in flight at once — PageSpeed audits take several
+// seconds each, so a handful of businesses would otherwise serialize into a very slow search.
+async function mapLimit(items,limit,fn){
+  let i=0;
+  async function worker(){ while(i<items.length){ const idx=i++; await fn(items[idx],idx); } }
+  await Promise.all(Array.from({length:Math.min(limit,items.length)},worker));
 }
 
 export async function runFinder(){
@@ -80,6 +101,19 @@ export async function runFinder(){
       });
     });
     const scanned=res.length;
+    if(($('#fauditweb')||{}).checked){
+      const toAudit=res.filter(b=>b.website&&b.web);
+      if(toAudit.length){
+        out.innerHTML='<div class="empty">'+ic('search','#5C6E8A',34)+`<div>Checking ${toAudit.length} website${toAudit.length===1?'':'s'} for speed, mobile-friendliness &amp; booking…</div><div style="font-size:12px;margin-top:4px">This is the slow part — PageSpeed Insights runs a real Lighthouse audit per site.</div></div>`;
+        // Best-effort: a failed/timed-out audit just leaves that business without a weak_site gap
+        // (never a false "weak" flag) rather than failing the whole search.
+        await mapLimit(toAudit,4,async b=>{
+          try{ b.siteAudit=await auditWebsite(b.web); }
+          catch(err){ b.siteAudit={error:err.message}; }
+          b.gaps=detectGaps(b); b.gapSummary=gapSummary(b); b.demandSignal=demandSignal(b); b.score=scoreFor(b);
+        });
+      }
+    }
     res=res.filter(b=>b.gaps&&b.gaps.length); // only businesses with something to pitch
     setLivePool(res);
     state.finderResults=res;

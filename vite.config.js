@@ -3,6 +3,7 @@ import { fetchSocialsFor } from './api/lib/extractSocials.js';
 import { searchPlacesText } from './api/lib/placesSearch.js';
 import { geocodeAddress } from './api/lib/geocode.js';
 import { generateEmailDraft } from './api/lib/generateEmail.js';
+import { auditSite } from './api/lib/siteAudit.js';
 import { requireAuth } from './api/lib/requireAuth.js';
 import { rateLimit } from './api/lib/cache.js';
 
@@ -92,6 +93,32 @@ function backendApiPlugin() {
           rateLimit(user.id, { capacity: 20, refillPerSec: 0.5 });
           const draft = await generateEmailDraft(body);
           res.end(JSON.stringify(draft));
+        } catch (err) {
+          res.statusCode = err.status || 500;
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+
+      server.middlewares.use('/api/site-audit', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end(JSON.stringify({ error: 'POST only' }));
+          return;
+        }
+        res.setHeader('Content-Type', 'application/json');
+        let user;
+        try {
+          user = await requireAuth(req);
+        } catch (err) {
+          res.statusCode = err.status || 401;
+          res.end(JSON.stringify({ error: err.message }));
+          return;
+        }
+        const body = await readJsonBody(req);
+        try {
+          rateLimit(user.id, { capacity: 30, refillPerSec: 1 });
+          const audit = await auditSite(body);
+          res.end(JSON.stringify(audit));
         } catch (err) {
           res.statusCode = err.status || 500;
           res.end(JSON.stringify({ error: err.message }));

@@ -27,11 +27,16 @@ export function scoreColor(s){return s>=75?'#22C55E':s>=58?'#4D9FFF':s>=45?'#F5A
 /* ---- gap detection + lead scoring ---- */
 // Every reason a business gets flagged as a prospect. Returns [{type,tag,sev}] — `tag` is the
 // human string shown on the row, `sev` is this gap's weight in the score (0..1, summed then
-// capped). Thresholds: rating < 4.0 (needs ≥5 reviews to be meaningful), < 15 reviews, or a
-// Google businessStatus that isn't OPERATIONAL. A business with an empty array isn't a lead.
+// capped). Thresholds: rating < 4.0 (needs ≥5 reviews to be meaningful), < 15 reviews, a Google
+// businessStatus that isn't OPERATIONAL, or (for businesses that DO have a site) a weak one per
+// b.siteAudit — see api/lib/siteAudit.js. A business with an empty array isn't a lead.
 export function detectGaps(b){
   const g=[], rc=b.reviewCount||0;
   if(!b.website) g.push({type:'no_website',tag:'No website',sev:.70});
+  else if(b.siteAudit&&!b.siteAudit.error&&b.siteAudit.issues&&b.siteAudit.issues.length){
+    const n=b.siteAudit.issues.length;
+    g.push({type:'weak_site',tag:b.siteAudit.issues.slice(0,2).join(', ')+(n>2?` +${n-2} more`:''),sev:Math.min(.15+.10*n,.55)});
+  }
   if(b.rating && rc>=5 && b.rating<4.0) g.push({type:'low_rating',tag:b.rating+'★',sev:.28});
   if(rc<15) g.push({type:'few_reviews',tag:rc+' review'+(rc===1?'':'s'),sev:.16});
   if(b.status && b.status!=='OPERATIONAL')

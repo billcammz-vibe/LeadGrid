@@ -9,13 +9,14 @@ import {addHistory,dbHistoryToClient,dropHistoryFor} from './history.js';
 import {updateBadges,render} from './router.js';
 import {closeDrawer,openLead} from './drawer.js';
 import {renderCRM} from './crm.js';
+import {auditWebsite} from './finder.js';
 
 export function dbLeadToClient(row){
   const l={id:row.id,sourceId:row.source_id,name:row.name,cat:row.cat,city:row.city,
     province:row.province,postal:row.postal,street:row.street,address:row.address,
     lat:row.lat,lng:row.lng,phone:row.phone,website:row.website,web:row.web,
     rating:row.rating,reviewCount:row.review_count,value:row.value,email:row.email,
-    status:row.business_status||'',
+    status:row.business_status||'',siteAudit:row.site_audit||null,
     socials:row.socials||{},reviews:row.reviews||[],hot:row.hot,score:row.score,
     gaps:row.gaps||null,gapSummary:row.gap_summary||'',
     demandSignal:row.demand_signal!=null?+row.demand_signal:null,
@@ -39,7 +40,7 @@ export function clientLeadToDb(l){
     province:l.province,postal:l.postal,street:l.street,address:l.address,
     lat:l.lat,lng:l.lng,phone:l.phone,website:!!l.website,web:l.web,
     rating:l.rating,review_count:l.reviewCount,value:l.value,email:l.email,
-    business_status:l.status||null,
+    business_status:l.status||null,site_audit:l.siteAudit||null,
     socials:l.socials||{},reviews:l.reviews||[],hot:!!l.hot,score:l.score,
     gaps:l.gaps||[],gap_summary:l.gapSummary||null,
     demand_signal:l.demandSignal!=null?l.demandSignal:null,
@@ -138,6 +139,25 @@ export async function reEnrich(kind,id){
     b._enrichOk=false; b._enrichNote='Scrape failed — '+err.message;
     persistEnrich(kind,id,b);
   }
+}
+
+// Website-quality (PageSpeed/Lighthouse) check, on demand — for a lead that either wasn't found
+// via the Finder (so was never auto-audited) or whose earlier audit failed/timed out. Recomputes
+// gaps/score same as the Finder's batch audit does, and persists + logs it.
+export async function auditLeadSite(id){
+  const l=leadById(id); if(!l||!l.website||!l.web)return;
+  try{
+    l.siteAudit=await auditWebsite(l.web);
+  }catch(err){
+    dbError('Site quality check failed — '+err.message);
+    return;
+  }
+  l.gaps=detectGaps(l); l.gapSummary=gapSummary(l); l.demandSignal=demandSignal(l); l.score=scoreFor(l);
+  addHistory(id,'note',l.siteAudit.issues&&l.siteAudit.issues.length?('Site check: '+l.siteAudit.issues.join(', ')):'Site check: no issues found',{});
+  sb.from('leads').update({site_audit:l.siteAudit,gaps:l.gaps,gap_summary:l.gapSummary,demand_signal:l.demandSignal,score:l.score}).eq('id',id)
+    .then(({error})=>{if(error)dbError('Failed to save site audit — '+error.message);});
+  if(state.view==='crm')renderCRM();
+  if(document.querySelector('#drawer.open'))openLead(id);
 }
 
 /* ---- lead mutation ---- */

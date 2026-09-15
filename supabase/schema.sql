@@ -27,6 +27,7 @@ create table leads (
   gap_summary text,
   demand_signal numeric,
   business_status text,
+  site_audit jsonb,                    -- PageSpeed/Lighthouse audit for leads with a website; null = not checked
   stage text default 'new',            -- new | contacted | replied | won | lost
   notes text,
   next_action text,

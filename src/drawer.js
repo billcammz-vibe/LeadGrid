@@ -6,6 +6,25 @@ import {aiScaffold,renderAI,setCurLead,setAiSeed} from './outreach.js';
 import {deleteLead} from './data.js';
 import {historyFor,HISTORY_KINDS} from './history.js';
 
+// Website row in Details: link + (once checked) a compact speed/mobile/HTTPS/booking readout,
+// plus a Check now / Re-check / Retry action. PageSpeed audits are slow, so this is on-demand,
+// not automatic — the Finder pre-runs it for search results when its own toggle is on.
+function siteRow(l){
+  if(!l.website||!l.web)return 'None — opportunity';
+  const link=`<a class="tlink" href="${l.web}" target="_blank" rel="noopener">${esc(l.web.replace('https://',''))}</a>`;
+  const a=l.siteAudit;
+  if(!a)return `${link}<div style="margin-top:4px"><a onclick="auditLeadSite('${l.id}')" style="font-size:12px;cursor:pointer">${ic('spark','#4D9FFF',11)} Check site quality</a></div>`;
+  if(a.error)return `${link}<div style="margin-top:4px;font-size:12px;color:#F87171">Check failed — ${esc(a.error)} · <a onclick="auditLeadSite('${l.id}')" style="cursor:pointer">Retry</a></div>`;
+  const ok=t=>`<span style="color:var(--won)">${t}</span>`, bad=t=>`<span style="color:#F87171">${t}</span>`;
+  const parts=[
+    a.speedScore!=null?(a.speedScore<50?bad('Speed '+a.speedScore+'/100'):ok('Speed '+a.speedScore+'/100')):null,
+    a.mobileOk===false?bad('Not mobile-friendly'):a.mobileOk===true?ok('Mobile-friendly'):null,
+    a.httpsOk===false?bad('No HTTPS'):a.httpsOk===true?ok('HTTPS'):null,
+    a.hasBooking===false?bad('No booking link'):a.hasBooking===true?ok('Has booking link'):null,
+  ].filter(Boolean).join(' · ');
+  return `${link}<div style="margin-top:4px;font-size:12px">${parts}<div style="margin-top:2px"><a onclick="auditLeadSite('${l.id}')" style="cursor:pointer;color:var(--dim)">Re-check</a></div></div>`;
+}
+
 export function openLead(id){
   const l=leadById(id),r=repById(l.rep);
   setCurLead(id); const seed=hash(l.name)%2; setAiSeed(seed);
@@ -50,7 +69,7 @@ export function openLead(id){
           <div><div class="k">Owner / Rep</div><div class="v">${r?r.name:'Unassigned'}</div></div>
           <div><div class="k">Phone</div><div class="v mono">${l.phone||'—'}</div></div>
           <div><div class="k">Address</div><div class="v" style="font-size:12.5px">${l.street||'—'}, ${l.city} ${l.postal||''}</div></div>
-          <div><div class="k">Website</div><div class="v">${l.website?'Live':'None — opportunity'}</div></div>
+          <div><div class="k">Website</div><div class="v">${siteRow(l)}</div></div>
         </div>
       </div>
       <div class="dsec"><button class="btn danger-ghost" style="width:100%;justify-content:center" onclick="askDeleteLead('${l.id}')">${ic('trash')} Delete lead</button></div>

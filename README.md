@@ -1,8 +1,8 @@
 # LeadGrid — local setup
 
-A client-finding pipeline: **Find** local businesses with a gap you can pitch (no website, low
-rating, few reviews, odd status) via Google Places → **Enrich** and score them → **Engage** with
-AI-drafted outreach → **Track** them through the pipeline to won/lost.
+A client-finding pipeline: **Find** local businesses with a gap you can pitch (no website, a weak
+site, low rating, few reviews, odd status) via Google Places + PageSpeed Insights → **Enrich** and
+score them → **Engage** with AI-drafted outreach → **Track** them through the pipeline to won/lost.
 
 Markup lives in `index.html`, styles in `styles.css`, app logic in ES modules under `src/`
 (entry: `src/main.js`), bundled by Vite. Data persists to Supabase (Postgres + Auth). The paid
@@ -26,10 +26,11 @@ the SQL editor). For local dev, create one confirmed Auth user and set `VITE_DEV
 
 ### Google (server-side only — one key)
 In [console.cloud.google.com](https://console.cloud.google.com): create a project, **enable
-billing**, and enable **Places API (New)** + **Geocoding API**. Create an API key with **no**
-application/referrer restriction (server-to-server calls can't send one), API-restricted to those
-two. Put it in `GOOGLE_PLACES_API_KEY`. There is no client-side map, so no Maps JavaScript API
-key or Map ID is required.
+billing**, and enable **Places API (New)**, **Geocoding API**, and **PageSpeed Insights API**.
+Create an API key with **no** application/referrer restriction (server-to-server calls can't send
+one), API-restricted to those three. Put it in `GOOGLE_PLACES_API_KEY`. There is no client-side
+map, so no Maps JavaScript API key or Map ID is required. (PageSpeed Insights also works
+unauthenticated at a much lower quota if you skip this — useful for a quick local test.)
 
 ### Claude
 `ANTHROPIC_API_KEY` from [console.anthropic.com](https://console.anthropic.com) — server-side only.
@@ -48,6 +49,8 @@ for `npm run dev`). Set the same env vars in the Vercel project.
 - `styles.css` — all styling
 - `src/` — `main.js` (entry), `state.js` (shared state), then one module per feature: `crm.js`,
   `finder.js`, `calendar.js`, `reps.js`, `drawer.js`, `outreach.js`, `assistant.js`,
-  `dashboard.js`, plus `router.js`, `data.js` (Supabase layer), `sb.js`, `helpers.js`, `icons.js`
-- `api/` — auth-gated proxies: `places-search.js`, `geocode.js`, `socials.js`, `generate-email.js` (+ `lib/`)
+  `dashboard.js`, plus `router.js`, `data.js` (Supabase layer), `history.js` (activity log),
+  `sb.js`, `helpers.js`, `icons.js`
+- `api/` — auth-gated proxies: `places-search.js`, `geocode.js`, `socials.js`, `generate-email.js`,
+  `site-audit.js` (+ `lib/`)
 - `supabase/` — `schema.sql` and incremental `migrations/`
