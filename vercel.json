@@ -1,0 +1,7 @@
+{
+  "functions": {
+    "api/site-audit.js": { "maxDuration": 60 },
+    "api/generate-email.js": { "maxDuration": 30 },
+    "api/places-search.js": { "maxDuration": 30 }
+  }
+}

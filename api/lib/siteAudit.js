@@ -38,7 +38,7 @@ async function runPageSpeed(url, key) {
   ['performance', 'seo', 'best-practices'].forEach((c) => params.append('category', c));
   if (key) params.set('key', key);
   const res = await fetch(`https://www.googleapis.com/pagespeedonline/v5/runPagespeed?${params}`, {
-    signal: AbortSignal.timeout(28000), // Lighthouse runs take a while — this is the slow call
+    signal: AbortSignal.timeout(45000), // Lighthouse runs take a while — a real dental-site test hit 28s and timed out
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
@@ -48,9 +48,13 @@ async function runPageSpeed(url, key) {
   if (!lh) throw Object.assign(new Error('PageSpeed returned no result — the site may block automated checks'), { status: 502 });
   const audits = lh.audits || {};
   const perf = lh.categories && lh.categories.performance ? Math.round(lh.categories.performance.score * 100) : null;
-  // 'viewport' (has a responsive meta viewport tag) lives under the SEO category in Lighthouse,
-  // and doubles as the standard mobile-friendliness signal; 'is-on-https' lives under best-practices.
-  const mobileOk = audits.viewport ? audits.viewport.score === 1 : null;
+  // The viewport (responsive meta tag / mobile-friendliness) audit lives under the SEO category.
+  // Google renamed it 'viewport-insight' at some point (confirmed live — a real PSI response no
+  // longer has a plain 'viewport' key); check both so this survives either Lighthouse version.
+  // Its scoreDisplayMode is 'numeric', not strictly binary, so use Lighthouse's own "good" cutoff
+  // (>=0.9) rather than requiring an exact 1. 'is-on-https' (best-practices) is still binary 0/1.
+  const viewportAudit = audits['viewport-insight'] || audits.viewport;
+  const mobileOk = viewportAudit && viewportAudit.score != null ? viewportAudit.score >= 0.9 : null;
   const httpsOk = audits['is-on-https'] ? audits['is-on-https'].score === 1 : null;
   return { speedScore: perf, mobileOk, httpsOk };
 }
