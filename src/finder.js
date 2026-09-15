@@ -22,8 +22,11 @@ export function renderAreaSuggest(showAll){
 export function pickArea(a){ $('#farea').value=a; hideAreaSuggest(); }
 export function hideAreaSuggest(){ const el=$('#areaSuggest'); if(el){el.classList.remove('open');} }
 
+// "Dental" when scoped to one vertical, "HVAC, Plumbing, …" when broadened later.
+const catScopeLabel=()=>CATS.join(', ');
+
 export function renderFinder(){
-  $('#v-finder').innerHTML=`<div class="viewhead"><div><div class="t">Lead Finder</div><div class="s">Search an area via Google Places — flags every business with a gap you can pitch and tags it with the reason</div></div></div>
+  $('#v-finder').innerHTML=`<div class="viewhead"><div><div class="t">Lead Finder</div><div class="s">Searching <b>${catScopeLabel()}</b> via Google Places — flags every business with a gap you can pitch and tags it with the reason</div></div></div>
     <div class="card" style="margin-bottom:16px">
       <div style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap">
         <div style="flex:1;min-width:220px" class="area-suggest-wrap"><div class="flbl">Area</div>
@@ -33,7 +36,7 @@ export function renderFinder(){
         <button class="btn" id="findbtn" onclick="runFinder()">${ic('search','#fff')} Find leads</button>
       </div>
     </div>
-    <div id="finderresults"><div class="empty">${ic('search','#5C6E8A',40)}<div>Enter an area and run a search.</div><div style="font-size:12px;margin-top:4px">Searches ${CATS.length} categories at once, keeps only businesses with a gap — no website, low rating, few reviews, or an odd status — and scores each by gap severity × demand.</div></div></div>`;
+    <div id="finderresults"><div class="empty">${ic('search','#5C6E8A',40)}<div>Enter an area and run a search.</div><div style="font-size:12px;margin-top:4px">Searches ${catScopeLabel()} businesses, keeps only ones with a gap — no website, low rating, few reviews, or an odd status — and scores each by gap severity × demand.</div></div></div>`;
 }
 
 /* ---- Google Places API (New) — searchText, via our /api/places-search proxy ---- */
@@ -56,10 +59,11 @@ export async function runFinder(){
     return;
   }
   btn.disabled=true; btn.style.opacity=.6;
-  out.innerHTML='<div class="empty">'+ic('search','#5C6E8A',34)+`<div>Searching ${CATS.length} categories in ${area}…</div></div>`;
+  out.innerHTML='<div class="empty">'+ic('search','#5C6E8A',34)+`<div>Searching for ${catScopeLabel()} in ${area}…</div></div>`;
   try{
-    // No user-picked type: query every category in parallel, then label each hit from its own
-    // Google Places type (inferCategory), falling back to whichever query found it if that's inconclusive.
+    // No user-picked type: query every category in CATS (currently just Dental — see state.js) in
+    // parallel, then label each hit from its own Google Places type (inferCategory), falling back
+    // to whichever query found it if that's inconclusive.
     const batches=await Promise.allSettled(CATS.map(c=>searchPlaces(`${CAT_QUERY_TERMS[c]} in ${area}`).then(places=>({cat:c,places}))));
     const failed=batches.filter(b=>b.status==='rejected');
     if(failed.length===batches.length)throw failed[0].reason||new Error('Places API request failed');
@@ -104,7 +108,7 @@ function renderFinderResults(res,area){
   rows.sort((a,b)=>sort==='rating'?(b.rating||0)-(a.rating||0):sort==='reviews'?(b.reviewCount||0)-(a.reviewCount||0):b.score-a.score);
   const chip=(on,label,count,fn)=>`<button class="chip ${on?'on':''}" onclick="${fn}">${label} <span style="opacity:.6">${count}</span></button>`;
   out.innerHTML=`<div style="margin:6px 2px 12px;color:var(--muted);font-size:13px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${res.length} flagged of ${scanned} scanned in ${area||'your area'} <span class="pill" style="background:#22C55E1a;color:#22C55E"><span class="d" style="background:#22C55E"></span>live · Google Places</span></div>
-    <div class="filterrow" style="margin-bottom:8px">${chip(!state.finderCat,'All types',res.length,"setFinderCat('')")}${cats.map(c=>chip(c===state.finderCat,c,res.filter(p=>p.cat===c).length,`setFinderCat('${c}')`)).join('')}</div>
+    ${cats.length>1?`<div class="filterrow" style="margin-bottom:8px">${chip(!state.finderCat,'All types',res.length,"setFinderCat('')")}${cats.map(c=>chip(c===state.finderCat,c,res.filter(p=>p.cat===c).length,`setFinderCat('${c}')`)).join('')}</div>`:''}
     <div class="filterrow" style="margin-bottom:12px;display:flex;align-items:center;gap:6px;flex-wrap:wrap">
       ${chip(!state.finderGap,'Any gap',res.length,"setFinderGap('')")}${GAP_TYPES.filter(g=>gapCount(g.type)).map(g=>chip(g.type===state.finderGap,g.label,gapCount(g.type),`setFinderGap('${g.type}')`)).join('')}
       <span style="flex:1"></span>

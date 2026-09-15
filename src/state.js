@@ -21,11 +21,16 @@ export const GAP_TYPES=[
 ];
 export const gapOf=type=>GAP_TYPES.find(g=>g.type===type);
 
-export const CATS=['HVAC','Plumbing','Restaurant','Auto Repair','Dental','Landscaping','Fitness','Pet Grooming','Nail Salon'];
-// Lead Finder searches every category behind the scenes (no user-picked type) and labels each
-// result from what Google actually returns — see CAT_QUERY_TERMS / inferCategory below.
-// Order here sets both the results-list order and which category wins when a place matches more
-// than one query — Nail Salon is deliberately last so it never gets priority over the others.
+// Full vertical set — kept intact (and still backs CAT_QUERY_TERMS/REVIEW_THEMES below) for when
+// this broadens past one vertical. Order sets both the results-list order and which category wins
+// when a place matches more than one query — Nail Salon is deliberately last so it never gets
+// priority over the others.
+export const ALL_CATS=['HVAC','Plumbing','Restaurant','Auto Repair','Dental','Landscaping','Fitness','Pet Grooming','Nail Salon'];
+// Active search scope — dental only for now (2026-09-15, per the business owner). Lead Finder
+// searches every category in this list behind the scenes (no user-picked type) and labels each
+// result from what Google actually returns — see CAT_QUERY_TERMS / inferCategory below. Swap
+// back to ALL_CATS (or a bigger subset) to broaden.
+export const CATS=['Dental'];
 export const AREA_SUGGESTIONS=['Mississauga, ON','Oakville, ON','North York, ON','Vaughan, ON','Scarborough, ON','Toronto, ON','Etobicoke, ON','Brampton, ON','Richmond Hill, ON','Markham, ON'];
 export const CAT_QUERY_TERMS={'Nail Salon':'nail salons','HVAC':'HVAC contractors','Plumbing':'plumbers',
   'Restaurant':'restaurants','Auto Repair':'auto repair shops','Dental':'dentists',
