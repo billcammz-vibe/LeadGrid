@@ -24,7 +24,7 @@ export function renderDash(){
   });
 
   $('#v-dashboard').innerHTML=`
-    <div class="viewhead"><div><div class="t">Good morning, ${cap(currentUserName)}</div><div class="s">${open.length} open leads across the GTA · ${money(pipeVal)} in play</div></div>
+    <div class="viewhead"><div><div class="t">Good morning, ${cap(currentUserName)}</div><div class="s">${open.length} open leads in your pipeline · ${money(pipeVal)} in play</div></div>
     <button class="btn" onclick="go('finder')">${ic('plus','#fff')} Find new leads</button></div>
     <div class="kpis">
       <div class="kpi"><div class="lab">Open pipeline</div><div class="val">${money(pipeVal)}</div></div>

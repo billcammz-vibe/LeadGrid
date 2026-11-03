@@ -1,6 +1,6 @@
 // Formatting, DOM, scoring, and business-shape helpers shared across feature modules.
 import {ic} from './icons.js';
-import {stageOf,LEADS,REPS,POOL,livePool,state,gapOf,STREETS,FSA,PLET,REVIEW_THEMES,REVIEW_AUTHORS,REVIEW_TIMES} from './state.js';
+import {stageOf,LEADS,REPS,POOL,livePool,state,gapOf} from './state.js';
 
 export const $=s=>document.querySelector(s);
 export const money=n=>'$'+n.toLocaleString();
@@ -97,42 +97,10 @@ export function inferCategory(types){
   return 'Other';
 }
 
-/* ---- synthetic enrichment (used when a business lacks real data) ---- */
-export function slug(n){return n.toLowerCase().replace(/&/g,'and').replace(/[^a-z0-9]+/g,'').slice(0,22);}
+// hash() is used elsewhere (e.g. drawer.js picks a deterministic AI-copy variant from it) — the
+// rest of the old synthetic-enrichment fabricator (fake .ca emails/sites, Canadian postal codes,
+// made-up reviews) was dead code (nothing called enrich() any more) and Canada-only, so it's gone.
 export function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(i))>>>0;return h;}
-export function postalFor(city,h){const fsa=FSA[city]||'M5';const a=PLET[h%PLET.length];const l2=PLET[(h>>4)%PLET.length];return `${fsa}${a} ${h%10}${l2}${(h>>3)%10}`;}
-export function generateSampleReviews(b){
-  const t=REVIEW_THEMES[b.cat]||{pros:['friendly service','good value'],cons:['could improve online booking']};
-  const h=hash(b.name), n=4, pos=Math.round(n*(b.rating/5)), out=[];
-  for(let i=0;i<n;i++){
-    const hi=i<pos, pro=t.pros[(h+i)%t.pros.length], con=t.cons[(h+i)%t.cons.length];
-    out.push({
-      author:REVIEW_AUTHORS[(h+i)%REVIEW_AUTHORS.length],
-      rating:hi?(b.rating>=4.5?5:4):Math.max(2,Math.round(b.rating)-1),
-      text:hi?`Really happy with ${b.name} — the ${pro} stood out. Would recommend.`
-             :`Decent overall, but ${con}. Hope they sort it out.`,
-      time:REVIEW_TIMES[(h+i)%REVIEW_TIMES.length]
-    });
-  }
-  return out;
-}
-export function enrich(b){
-  const sg=slug(b.name), h=hash(b.name);
-  b.email=b.email||('info@'+sg+'.ca');
-  b.province=b.province||'ON';
-  b.postal=b.postal||postalFor(b.city,h);
-  b.street=b.street||((h%900+100)+' '+STREETS[h%STREETS.length]);
-  b.address=b.address||(b.street+', '+b.city+', '+b.province+' '+b.postal);
-  b.web=b.website?('https://'+sg+'.ca'):null;
-  b.socials=b.socials||{
-    instagram:'@'+sg,
-    facebook:(h%3!==0)?'/'+sg:null,
-    google:'Google Business Profile'
-  };
-  b.score=b.score||scoreFor(b);
-  b.reviews=b.reviews||generateSampleReviews(b); // array of {author,rating,text,time} — Places `reviews` shape
-  return b;
-}
 
 /* ---- Google Places → internal business shape ---- */
 export function comp(p,type){const c=(p.addressComponents||[]).find(x=>(x.types||[]).includes(type));return c?(c.shortText||c.longText||''):'';}
@@ -149,7 +117,7 @@ export function placeToBusiness(p,queryCat){
     // actually found this result when Google's type data is inconclusive.
     cat:inferred==='Other'&&queryCat?queryCat:inferred,
     city:comp(p,'locality')||comp(p,'sublocality')||comp(p,'administrative_area_level_2')||'',
-    province:comp(p,'administrative_area_level_1')||'ON',
+    province:comp(p,'administrative_area_level_1')||'',
     postal:comp(p,'postal_code')||'',
     street, address:p.formattedAddress||'',
     lat:loc.latitude, lng:loc.longitude,

@@ -32,17 +32,18 @@ export const ALL_CATS=['HVAC','Plumbing','Restaurant','Auto Repair','Dental','La
 // result from what Google actually returns — see CAT_QUERY_TERMS / inferCategory below. Swap
 // back to ALL_CATS (or a bigger subset) to broaden.
 export const CATS=['Dental'];
-export const AREA_SUGGESTIONS=['Mississauga, ON','Oakville, ON','North York, ON','Vaughan, ON','Scarborough, ON','Toronto, ON','Etobicoke, ON','Brampton, ON','Richmond Hill, ON','Markham, ON'];
+// Area autosuggest — not a restriction (the field is free text; any area works, anywhere Google
+// Places has data), just a convenience dropdown. Spans every region this app is actively used in.
+export const AREA_SUGGESTIONS=[
+  'Mississauga, ON','Oakville, ON','North York, ON','Vaughan, ON','Scarborough, ON','Toronto, ON','Etobicoke, ON','Brampton, ON','Richmond Hill, ON','Markham, ON',
+  'Muscat, Oman','Salalah, Oman','Sohar, Oman','Nizwa, Oman','Sur, Oman','Rustaq, Oman',
+];
 export const CAT_QUERY_TERMS={'Nail Salon':'nail salons','HVAC':'HVAC contractors','Plumbing':'plumbers',
   'Restaurant':'restaurants','Auto Repair':'auto repair shops','Dental':'dentists',
   'Landscaping':'landscaping companies','Fitness':'gyms','Pet Grooming':'pet groomers'};
 
-/* ---- synthetic-enrichment lookup tables ---- */
-export const STREETS=['Lakeshore Rd','Dundas St W','Hurontario St','Yonge St','Queen St E','Bloor St W','Danforth Ave','Eglinton Ave','Kingston Rd','Rutherford Rd'];
-export const FSA={'Mississauga':'L5','Oakville':'L6','North York':'M2','Vaughan':'L4','Toronto':'M5','Scarborough':'M1'};
-export const PLET='ABCEGHJKLMNPRSTVXY'; // letters valid in Canadian postal codes
-// Review themes + sample-review generator source. Mirrors the shape of the Google Places `reviews`
-// array so real review objects drop straight into b.reviews later.
+// Review themes for the "what their reviews say" heuristic (src/outreach.js genReview). Category-
+// based, not region-based — applies the same regardless of where the business is.
 export const REVIEW_THEMES={
   'Nail Salon':{pros:['clean, relaxing space','friendly, skilled technicians','great nail art'],cons:['occasional wait times','phone-only booking']},
   'HVAC':{pros:['fast response times','honest, upfront pricing','knowledgeable techs'],cons:['scheduling delays in peak season']},
@@ -54,9 +55,7 @@ export const REVIEW_THEMES={
   'Fitness':{pros:['motivating trainers','clean equipment'],cons:['peak-hour crowding']},
   'Pet Grooming':{pros:['gentle with anxious pets','great haircuts','clean, calm space'],cons:['limited weekend slots','booking can be slow']}
 };
-export const REVIEW_AUTHORS=['Sarah M.','Jason T.','Priya K.','Mike D.','Amanda R.','Carlos V.','Nina P.','Dave L.','Grace W.','Tom H.'];
-export const REVIEW_TIMES=['2 days ago','1 week ago','3 weeks ago','1 month ago','2 months ago'];
-export const AI_SUGG=['Top leads to call today','Which rep is underloaded?','Summarize Mississauga','No-website opportunities'];
+export const AI_SUGG=['Top leads to call today','Which rep is underloaded?','Summarize an area','No-website opportunities'];
 
 /* ---- live collections (mutated in place, never reassigned) ---- */
 export const LEADS=[];

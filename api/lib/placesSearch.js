@@ -13,7 +13,12 @@ async function searchPlacesText({ textQuery, near } = {}) {
   if (!key) throw Object.assign(new Error('No Google API key configured on the server'), { status: 500 });
   if (!textQuery) throw Object.assign(new Error('Missing textQuery'), { status: 400 });
 
-  const body = { textQuery, maxResultCount: 20, regionCode: 'CA' };
+  // No regionCode here on purpose — it biases results toward one country, and this app is no
+  // longer Canada-only. The free-text query already names the area ("dentists in Muscat, Oman"),
+  // which Google resolves fine without a conflicting region hint. languageCode is set so city/
+  // address fields come back in English (e.g. "Muscat" not "مسقط") for a consistent CRM across
+  // regions — business names stay whatever the owner listed, often already bilingual.
+  const body = { textQuery, maxResultCount: 20, languageCode: 'en' };
   if (near && near.lat != null && near.lng != null && near.radius) {
     body.locationBias = { circle: { center: { latitude: near.lat, longitude: near.lng }, radius: near.radius } };
   }
