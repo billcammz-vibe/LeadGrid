@@ -23,7 +23,15 @@ create table leads (
   reviews jsonb default '[]',
   hot boolean default false,
   score int,
-  stage text default 'new',
+  gaps jsonb,
+  gap_summary text,
+  demand_signal numeric,
+  business_status text,
+  site_audit jsonb,                    -- PageSpeed/Lighthouse audit for leads with a website; null = not checked
+  stage text default 'new',            -- new | contacted | replied | won | lost
+  notes text,
+  next_action text,
+  next_action_at timestamptz,
   rep_id text references reps(id) on delete set null,
   enrich_checked boolean default false,
   enrich_ok boolean,
@@ -31,6 +39,18 @@ create table leads (
   created_at timestamptz default now(),
   updated_at timestamptz default now()
 );
+
+-- Append-only per-lead activity log (stage changes, notes, next-action edits, outreach).
+create table lead_history (
+  id uuid primary key default gen_random_uuid(),
+  lead_id text references leads(id) on delete cascade,
+  at timestamptz default now(),
+  kind text not null,                  -- created | stage_change | note | next_action | email_drafted
+  body text,
+  meta jsonb default '{}',
+  created_at timestamptz default now()
+);
+create index lead_history_lead_id_at on lead_history (lead_id, at desc);
 
 create table events (
   id uuid primary key default gen_random_uuid(),
@@ -51,10 +71,19 @@ $$ language plpgsql;
 create trigger leads_set_updated_at before update on leads
   for each row execute function set_updated_at();
 
+-- One CRM lead per source business: source_id is the Google Place id a lead was imported from,
+-- so a unique index on it (where set) stops the same business being added twice. Partial, so
+-- manually-created leads with a null source_id are unaffected.
+create unique index if not exists leads_source_id_unique
+  on leads (source_id)
+  where source_id is not null;
+
 alter table reps enable row level security;
 alter table leads enable row level security;
 alter table events enable row level security;
+alter table lead_history enable row level security;
 
 create policy "authenticated only" on reps for all using (auth.role() = 'authenticated');
 create policy "authenticated only" on leads for all using (auth.role() = 'authenticated');
 create policy "authenticated only" on events for all using (auth.role() = 'authenticated');
+create policy "authenticated only" on lead_history for all using (auth.role() = 'authenticated');

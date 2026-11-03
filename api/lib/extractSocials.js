@@ -5,6 +5,10 @@
 // client-side fetch from the app's origin, and Tavily's key must never reach the browser.
 // Never guesses a handle — returns null for anything it can't actually find.
 
+const { cached } = require('./cache');
+
+const SOCIALS_TTL_MS = 24 * 60 * 60 * 1000; // a business's Instagram/Facebook rarely changes day to day
+
 const INSTAGRAM_SKIP = new Set(['explore', 'accounts', 'p', 'reel', 'reels', 'stories', 'direct', 'about', 'legal', 'developer']);
 const FACEBOOK_SKIP = new Set(['sharer', 'share', 'plugins', 'tr', 'dialog', 'login', 'help', 'policies', 'privacy', 'l.php']);
 
@@ -85,7 +89,12 @@ async function searchSocialPlatform(name, city, platform, host, skip, keepQuery)
   return null;
 }
 
-async function fetchSocialsFor({ url, name, city } = {}) {
+async function fetchSocialsFor(args = {}) {
+  const { url, name, city } = args;
+  return cached('socials:' + [url || '', name || '', city || ''].join('|').toLowerCase(), SOCIALS_TTL_MS, () => resolveSocials({ url, name, city }));
+}
+
+async function resolveSocials({ url, name, city } = {}) {
   let instagram = null, facebook = null, siteFailed = false;
   let instagramSource = null, facebookSource = null;
 

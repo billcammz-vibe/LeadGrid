@@ -1,59 +1,56 @@
 # LeadGrid — local setup
 
-A single-file B2B lead-generation prototype: interactive Google Maps view, CRM, Lead Finder
-(Google Places), routes, calendar, reps, and an AI outreach drawer. Everything lives in `index.html`
-(HTML + CSS + JS, dependencies loaded from CDN). No build step required, though this repo also has a
-minimal Vite dev server set up (`npm run dev`) for live reload while editing.
+A client-finding pipeline: **Find** local businesses with a gap you can pitch (no website, a weak
+site, low rating, few reviews, odd status) via Google Places + PageSpeed Insights → **Enrich** and
+score them → **Engage** with AI-drafted outreach → **Track** them through the pipeline to won/lost.
 
-## Google Cloud setup (required — the map won't load without this)
-
-1. Create/select a project at [console.cloud.google.com](https://console.cloud.google.com).
-2. Enable billing on the project — required even within the free-tier monthly allowances.
-3. Enable **Maps JavaScript API** and **Places API (New)** (APIs & Services → Library).
-4. Create an API key (APIs & Services → Credentials → Create Credentials → API key).
-5. Restrict it:
-   - Application restriction: HTTP referrers — add `http://localhost:5173/*` for this repo's Vite
-     dev server, plus any deployed URL later.
-   - API restriction: limit the key to the two APIs above.
-   - Note: a referrer-restricted key rejects `file://` origins — use `npm run dev` rather than
-     double-clicking `index.html` once the key is restricted.
-6. Recommended (~2 min, free): create one real Map ID (Google Maps Platform → Map Management →
-   Create Map ID → Vector → default style) and turn off the "Points of interest" layer in its Style
-   Editor, so Google's own business icons don't clash with LeadGrid's custom pins. Leaving the Map ID
-   field blank in the app falls back to Google's public `DEMO_MAP_ID`, which works immediately but is
-   documented by Google as testing-only — **and it's fixed to a light style, so the Light/Dark toggle
-   on the Map view has no visible effect until you set a real Map ID.** (Advanced Markers require some
-   Map ID to be present, so the app can't just omit it.)
-
-Paste the API key (and Map ID, if you made one) into the "Connect Google Maps" card shown on first
-load — it's saved in your browser's `localStorage` from then on, and the same key is shared with
-Lead Finder's search.
-
-## Run it locally
+Markup lives in `index.html`, styles in `styles.css`, app logic in ES modules under `src/`
+(entry: `src/main.js`), bundled by Vite. Data persists to Supabase (Postgres + Auth). The paid
+Google/Tavily calls are proxied through `api/` so no third-party key ever reaches the browser.
 
 ```bash
-cd path/to/this/folder
 npm install
-npm run dev    # open the printed http://localhost:5173
+npm run dev     # open the printed http://localhost:5173
+npm run build   # static bundle in dist/
+npm run lint
 ```
 
-## Live business search
-The **Lead Finder** tab searches Google Places directly from the browser using the same API key you
-entered for the map. Type a business type + area and hit **Find leads** — results include exact
-coordinates, address, phone, rating, and website presence, and can be added straight to the CRM.
+## Credentials — copy `.env.example` to `.env.local` and fill in
 
-For production you should not expose the key in the browser — use the server route in
-`places-search-route.ts` (a Next.js App Router handler) and point the app's `searchPlaces()` at
-`/api/places/search` instead of calling Google directly.
+### Supabase
+Project Settings → API for `VITE_SUPABASE_URL` + `VITE_SUPABASE_ANON_KEY` (anon key is public by
+design — every table is RLS-gated to "authenticated only"). Apply the schema with
+`supabase link --project-ref <ref>` then `supabase db push` (or paste `supabase/schema.sql` into
+the SQL editor). For local dev, create one confirmed Auth user and set `VITE_DEV_EMAIL` /
+`VITE_DEV_PASSWORD` so the app signs in silently and skips the login screen.
 
-## Deploy (when you want a shareable URL)
-Drag this folder onto **Vercel** or **Netlify**, or:
-```bash
-npx vercel        # or: npx netlify deploy
-```
-Remember to add the deployed URL to the API key's HTTP referrer restriction in Google Cloud Console.
+### Google (server-side only — one key)
+In [console.cloud.google.com](https://console.cloud.google.com): create a project, **enable
+billing**, and enable **Places API (New)**, **Geocoding API**, and **PageSpeed Insights API**.
+Create an API key with **no** application/referrer restriction (server-to-server calls can't send
+one), API-restricted to those three. Put it in `GOOGLE_PLACES_API_KEY`. There is no client-side
+map, so no Maps JavaScript API key or Map ID is required. (PageSpeed Insights also works
+unauthenticated at a much lower quota if you skip this — useful for a quick local test.)
+
+### Claude
+`ANTHROPIC_API_KEY` from [console.anthropic.com](https://console.anthropic.com) — server-side only.
+Drafts the per-lead outreach email (`api/generate-email`, model `claude-sonnet-5`). Nothing sends
+automatically; drafts land in an editable box with copy / Gmail-compose actions.
+
+### Tavily
+`TAVILY_API_KEY` from [tavily.com](https://tavily.com) — social-link enrichment only.
+
+## Deploy
+`npx vercel` (the `api/` handlers are Vercel serverless functions; `vite.config.js` mirrors them
+for `npm run dev`). Set the same env vars in the Vercel project.
 
 ## Files
-- `index.html` — the whole app
-- `places-search-route.ts` — secure server-side Google Places route for a Next.js build
-- `CLAUDE_CODE_PROMPT.md` — paste into Claude Code to scaffold the local dev server
+- `index.html` — markup + login / drawer / modal shells
+- `styles.css` — all styling
+- `src/` — `main.js` (entry), `state.js` (shared state), then one module per feature: `crm.js`,
+  `finder.js`, `calendar.js`, `reps.js`, `drawer.js`, `outreach.js`, `assistant.js`,
+  `dashboard.js`, plus `router.js`, `data.js` (Supabase layer), `history.js` (activity log),
+  `sb.js`, `helpers.js`, `icons.js`
+- `api/` — auth-gated proxies: `places-search.js`, `geocode.js`, `socials.js`, `generate-email.js`,
+  `site-audit.js` (+ `lib/`)
+- `supabase/` — `schema.sql` and incremental `migrations/`

@@ -2,7 +2,10 @@ import { defineConfig, loadEnv } from 'vite';
 import { fetchSocialsFor } from './api/lib/extractSocials.js';
 import { searchPlacesText } from './api/lib/placesSearch.js';
 import { geocodeAddress } from './api/lib/geocode.js';
+import { generateEmailDraft } from './api/lib/generateEmail.js';
+import { auditSite } from './api/lib/siteAudit.js';
 import { requireAuth } from './api/lib/requireAuth.js';
+import { rateLimit } from './api/lib/cache.js';
 
 function readJsonBody(req) {
   return new Promise((resolve) => {
@@ -22,8 +25,9 @@ function backendApiPlugin() {
     configureServer(server) {
       server.middlewares.use('/api/socials', async (req, res) => {
         res.setHeader('Content-Type', 'application/json');
+        let user;
         try {
-          await requireAuth(req);
+          user = await requireAuth(req);
         } catch (err) {
           res.statusCode = err.status || 401;
           res.end(JSON.stringify({ error: err.message }));
@@ -33,8 +37,14 @@ function backendApiPlugin() {
         const url = params.get('url') || '';
         const name = params.get('name') || '';
         const city = params.get('city') || '';
-        const result = await fetchSocialsFor({ url, name, city });
-        res.end(JSON.stringify(result));
+        try {
+          rateLimit(user.id);
+          const result = await fetchSocialsFor({ url, name, city });
+          res.end(JSON.stringify(result));
+        } catch (err) {
+          res.statusCode = err.status || 500;
+          res.end(JSON.stringify({ error: err.message }));
+        }
       });
 
       server.middlewares.use('/api/places-search', async (req, res) => {
@@ -44,8 +54,9 @@ function backendApiPlugin() {
           return;
         }
         res.setHeader('Content-Type', 'application/json');
+        let user;
         try {
-          await requireAuth(req);
+          user = await requireAuth(req);
         } catch (err) {
           res.statusCode = err.status || 401;
           res.end(JSON.stringify({ error: err.message }));
@@ -53,6 +64,7 @@ function backendApiPlugin() {
         }
         const body = await readJsonBody(req);
         try {
+          rateLimit(user.id);
           const places = await searchPlacesText(body);
           res.end(JSON.stringify({ places }));
         } catch (err) {
@@ -61,10 +73,63 @@ function backendApiPlugin() {
         }
       });
 
+      server.middlewares.use('/api/generate-email', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end(JSON.stringify({ error: 'POST only' }));
+          return;
+        }
+        res.setHeader('Content-Type', 'application/json');
+        let user;
+        try {
+          user = await requireAuth(req);
+        } catch (err) {
+          res.statusCode = err.status || 401;
+          res.end(JSON.stringify({ error: err.message }));
+          return;
+        }
+        const body = await readJsonBody(req);
+        try {
+          rateLimit(user.id, { capacity: 20, refillPerSec: 0.5 });
+          const draft = await generateEmailDraft(body);
+          res.end(JSON.stringify(draft));
+        } catch (err) {
+          res.statusCode = err.status || 500;
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+
+      server.middlewares.use('/api/site-audit', async (req, res) => {
+        if (req.method !== 'POST') {
+          res.statusCode = 405;
+          res.end(JSON.stringify({ error: 'POST only' }));
+          return;
+        }
+        res.setHeader('Content-Type', 'application/json');
+        let user;
+        try {
+          user = await requireAuth(req);
+        } catch (err) {
+          res.statusCode = err.status || 401;
+          res.end(JSON.stringify({ error: err.message }));
+          return;
+        }
+        const body = await readJsonBody(req);
+        try {
+          rateLimit(user.id, { capacity: 30, refillPerSec: 1 });
+          const audit = await auditSite(body);
+          res.end(JSON.stringify(audit));
+        } catch (err) {
+          res.statusCode = err.status || 500;
+          res.end(JSON.stringify({ error: err.message }));
+        }
+      });
+
       server.middlewares.use('/api/geocode', async (req, res) => {
         res.setHeader('Content-Type', 'application/json');
+        let user;
         try {
-          await requireAuth(req);
+          user = await requireAuth(req);
         } catch (err) {
           res.statusCode = err.status || 401;
           res.end(JSON.stringify({ error: err.message }));
@@ -72,6 +137,7 @@ function backendApiPlugin() {
         }
         const params = new URL(req.url, 'http://localhost').searchParams;
         try {
+          rateLimit(user.id);
           const result = await geocodeAddress(params.get('address') || '');
           res.end(JSON.stringify(result));
         } catch (err) {
@@ -90,6 +156,7 @@ export default defineConfig(({ mode }) => {
   // aren't auto-exposed anywhere. Both need an explicit loadEnv() copy into process.env here.
   const env = loadEnv(mode, process.cwd(), '');
   if (env.TAVILY_API_KEY) process.env.TAVILY_API_KEY = env.TAVILY_API_KEY;
+  if (env.ANTHROPIC_API_KEY) process.env.ANTHROPIC_API_KEY = env.ANTHROPIC_API_KEY;
   if (env.GOOGLE_PLACES_API_KEY) process.env.GOOGLE_PLACES_API_KEY = env.GOOGLE_PLACES_API_KEY;
   if (env.VITE_GOOGLE_API_KEY) process.env.VITE_GOOGLE_API_KEY = env.VITE_GOOGLE_API_KEY;
   if (env.VITE_SUPABASE_URL) process.env.VITE_SUPABASE_URL = env.VITE_SUPABASE_URL;
