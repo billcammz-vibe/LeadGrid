@@ -15,7 +15,7 @@
   ::-webkit-scrollbar-thumb{background:var(--line);border-radius:6px}
   ::-webkit-scrollbar-track{background:transparent}
 
-  #app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:56px 1fr;height:100vh;transition:grid-template-columns .18s ease}
+  #app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:56px 1fr;height:100vh;height:100dvh;transition:grid-template-columns .18s ease}
 
   /* ---- collapsed sidebar (desktop only — on phones the sidebar is a bottom bar) ---- */
   @media(min-width:761px){
@@ -84,7 +84,7 @@
   .rowdel:hover{color:#F87171;background:rgba(239,68,68,.1);border-color:rgba(239,68,68,.3)}
   .confirm-wrap{position:fixed;inset:0;z-index:1200;display:none;align-items:center;justify-content:center;padding:20px}
   .confirm-wrap.open{display:flex}
-  .confirm-box{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;width:100%;max-width:380px;max-height:calc(100vh - 40px);overflow:auto;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.5);z-index:1}
+  .confirm-box{position:relative;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:24px;width:100%;max-width:380px;max-height:calc(100vh - 40px);max-height:calc(100dvh - 40px);overflow:auto;text-align:center;box-shadow:0 24px 70px rgba(0,0,0,.5);z-index:1}
   .confirm-icon{width:52px;height:52px;border-radius:14px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);display:grid;place-items:center;margin:0 auto 14px}
   .confirm-msg{font-size:14px;line-height:1.5;color:var(--text);margin-bottom:20px}
   .confirm-msg b{font-weight:600}
@@ -358,7 +358,7 @@
   .ev:hover .evdel{display:flex}
 
   /* ---- Routes ---- */
-  .routelayout{display:grid;grid-template-columns:360px 1fr;gap:16px;height:calc(100vh - 150px)}
+  .routelayout{display:grid;grid-template-columns:360px 1fr;gap:16px;height:calc(100vh - 150px);height:calc(100dvh - 150px)}
   .routepanel{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:auto;display:flex;flex-direction:column}
   .routestats{display:grid;grid-template-columns:1fr 1fr 1fr;border-bottom:1px solid var(--line)}
   .routestats .rs{padding:14px;text-align:center;border-right:1px solid var(--line-soft)}
@@ -393,7 +393,7 @@
   /* ---- AI Assistant ---- */
   .ai-fab{position:fixed;bottom:24px;right:24px;width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--blue),#7C4DFF);display:grid;place-items:center;box-shadow:0 8px 30px var(--glow);z-index:900;transition:.2s}
   .ai-fab:hover{transform:scale(1.06)}
-  .ai-panel{position:fixed;bottom:24px;right:24px;width:400px;height:560px;max-height:calc(100vh - 48px);background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.55);z-index:901;display:none;flex-direction:column;overflow:hidden}
+  .ai-panel{position:fixed;bottom:24px;right:24px;width:400px;height:560px;max-height:calc(100vh - 48px);max-height:calc(100dvh - 48px);background:var(--panel);border:1px solid var(--line);border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.55);z-index:901;display:none;flex-direction:column;overflow:hidden}
   .ai-panel.open{display:flex}
   .ai-head{padding:15px 18px;border-bottom:1px solid var(--line);display:flex;align-items:center;gap:11px}
   .ai-head .aicon{width:34px;height:34px;border-radius:10px;background:linear-gradient(135deg,var(--blue),#7C4DFF);display:grid;place-items:center}
@@ -444,10 +444,11 @@
   /* ---- Phone ---- */
   @media(max-width:760px){
     body{font-size:14px}
-    #app{grid-template-columns:1fr;grid-template-rows:52px 1fr 60px}
+    /* reserve space for the iOS home indicator / Android gesture bar below the tab bar */
+    #app{grid-template-columns:1fr;grid-template-rows:52px 1fr calc(58px + env(safe-area-inset-bottom))}
     .navtoggle{display:none} /* sidebar is a bottom bar on phones — nothing to collapse */
     /* sidebar -> bottom tab bar */
-    .sidebar{grid-row:3;grid-column:1;flex-direction:row;width:100%;height:60px;padding:0;border-right:none;border-top:1px solid var(--line);align-items:stretch;z-index:600}
+    .sidebar{grid-row:3;grid-column:1;flex-direction:row;width:100%;height:100%;padding:0 0 env(safe-area-inset-bottom);border-right:none;border-top:1px solid var(--line);align-items:stretch;z-index:600}
     .brand,.navlabel,.sidefoot{display:none}
     .sidebar .nav:last-of-type{display:none} /* hide AI nav row (fab covers it) */
     #nav{flex-direction:row;flex:1;gap:0;justify-content:space-around;align-items:stretch}
@@ -475,9 +476,9 @@
     .mapsearch-panel{left:14px;right:14px;width:auto;max-height:60vh}
     .biz-popup{width:78vw}
     /* drawer + AI as full-width sheets */
-    .drawer{width:100%}
-    .ai-panel{left:0;right:0;bottom:0;width:auto;height:82vh;max-height:82vh;border-radius:20px 20px 0 0}
-    .ai-fab{bottom:74px;right:16px;width:52px;height:52px}
+    .drawer{width:100%;padding-bottom:env(safe-area-inset-bottom)}
+    .ai-panel{left:0;right:0;bottom:0;width:auto;height:82vh;height:82dvh;max-height:82dvh;border-radius:20px 20px 0 0;padding-bottom:env(safe-area-inset-bottom)}
+    .ai-fab{bottom:calc(74px + env(safe-area-inset-bottom));right:16px;width:52px;height:52px}
     /* calendar scrolls */
     .calwrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
     .calgrid{min-width:600px}
