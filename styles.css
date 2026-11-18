@@ -7,7 +7,7 @@
     --sans:'Inter',system-ui,sans-serif; --disp:'Space Grotesk',sans-serif; --mono:'JetBrains Mono',monospace;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  html,body{height:100%}
+  html,body{height:100%;-webkit-text-size-adjust:100%;text-size-adjust:100%}
   body{background:var(--ink);color:var(--text);font-family:var(--sans);font-size:14px;overflow:hidden;-webkit-font-smoothing:antialiased}
   button{font-family:inherit;cursor:pointer;border:none;background:none;color:inherit}
   input,select{font-family:inherit}
@@ -61,6 +61,8 @@
   .repswitch select{background:none;border:none;color:var(--text);outline:none;font-size:13px;font-weight:500}
   .topbtn{width:36px;height:36px;border-radius:9px;border:1px solid var(--line);display:grid;place-items:center;color:var(--muted)}
   .topbtn:hover{color:var(--text);border-color:var(--blue)}
+  .topbar-logout{display:none} /* desktop has logout in the sidebar footer; shown only on phones */
+  .topbar-logout:hover{color:#F87171;border-color:rgba(239,68,68,.4)}
 
   /* ---- Main ---- */
   .main{grid-column:2;overflow:auto;position:relative}
@@ -449,7 +451,7 @@
     .navtoggle{display:none} /* sidebar is a bottom bar on phones — nothing to collapse */
     /* sidebar -> bottom tab bar */
     .sidebar{grid-row:3;grid-column:1;flex-direction:row;width:100%;height:100%;padding:0 0 env(safe-area-inset-bottom);border-right:none;border-top:1px solid var(--line);align-items:stretch;z-index:600}
-    .brand,.navlabel,.sidefoot{display:none}
+    .sidebar .brand,.navlabel,.sidefoot{display:none} /* hide the SIDEBAR brand only — keep the login logo */
     .sidebar .nav:last-of-type{display:none} /* hide AI nav row (fab covers it) */
     #nav{flex-direction:row;flex:1;gap:0;justify-content:space-around;align-items:stretch}
     #nav a{flex-direction:column;gap:2px;justify-content:center;padding:6px 2px;border-radius:0;font-size:9.5px;font-weight:500;flex:1;min-width:0}
@@ -464,6 +466,7 @@
     .search{display:none}
     .repswitch{margin-left:auto;padding:6px 8px}
     .repswitch select{max-width:96px}
+    .topbar-logout{display:grid} /* only way to log out on phones (sidebar footer is hidden) */
     /* main */
     .main{grid-column:1;grid-row:2}
     .view{padding:16px 14px}
@@ -492,8 +495,9 @@
     .crm-tbl th:nth-child(9),.crm-tbl td:nth-child(9){display:none}
     /* login card breathes on small screens */
     .loginbox{padding:22px 18px}
-    /* stop iOS zoom on focus */
-    .ai-input input,.repswitch select,#fcat,#farea{font-size:16px}
+    /* stop iOS auto-zoom on focus: any input under 16px makes Safari zoom in and never zoom
+       back out, which left the login screen and the rest of the app looking zoomed-in. */
+    input,select,textarea{font-size:16px}
     /* bottom sheet grab handle */
     .ai-head{padding-top:18px}
   }

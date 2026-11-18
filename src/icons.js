@@ -21,5 +21,6 @@ export function ic(n,c,s){c=c||'currentColor';s=s||17;const p={
   check:'M20 6 9 17l-5-5',
   trash:'M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M10 11v6M14 11v6',
   chevron:'M6 9l6 6 6-6',
-  menu:'M3 6h18M3 12h18M3 18h18'
+  menu:'M3 6h18M3 12h18M3 18h18',
+  logout:'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9'
   };return '<svg width="'+s+'" height="'+s+'" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">'+((p[n]||'').split(/(?=M)/).map(d=>'<path d="'+d+'"/>').join(''))+'</svg>';}
