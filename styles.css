@@ -496,8 +496,10 @@
     /* login card breathes on small screens */
     .loginbox{padding:22px 18px}
     /* stop iOS auto-zoom on focus: any input under 16px makes Safari zoom in and never zoom
-       back out, which left the login screen and the rest of the app looking zoomed-in. */
-    input,select,textarea{font-size:16px}
+       back out, which left the login screen and the rest of the app looking zoomed-in after
+       sign-in. !important is needed because per-input rules (.loginbox input, .search input,
+       .ai-input input, .emsubj/.embody …) and inline styles all outrank a bare input{} rule. */
+    input,select,textarea{font-size:16px!important}
     /* bottom sheet grab handle */
     .ai-head{padding-top:18px}
   }
