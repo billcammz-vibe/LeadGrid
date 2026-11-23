@@ -25,22 +25,43 @@ export function repAv(id){const r=repById(id);return r?'<span class="repav" styl
 export function scoreColor(s){return s>=75?'#22C55E':s>=58?'#4D9FFF':s>=45?'#F5A524':'#EF4444';}
 
 /* ---- gap detection + lead scoring ---- */
-// Every reason a business gets flagged as a prospect. Returns [{type,tag,sev}] — `tag` is the
-// human string shown on the row, `sev` is this gap's weight in the score (0..1, summed then
-// capped). Thresholds: rating < 4.0 (needs ≥5 reviews to be meaningful), < 15 reviews, a Google
-// businessStatus that isn't OPERATIONAL, or (for businesses that DO have a site) a weak one per
-// b.siteAudit — see api/lib/siteAudit.js. A business with an empty array isn't a lead.
+// What makes a business a lead: it has a phone number on its Google profile, plenty of reviews
+// (proof it has real demand), and at least one of the reviews Google returned for it complains
+// that customers couldn't get a reply, couldn't book, or were never answered — i.e. it is losing
+// enquiries it already pays to attract. Heuristic keyword match on the review text (English +
+// a few Arabic phrases); the matching reviews are kept on the lead so a human can read them.
+export const MIN_REVIEWS=50;
+const COMPLAINT_THEMES=[
+  {theme:'never answered',res:[
+    /\b(no\s?one|nobody)\s+(ever\s+)?(answers?|answered|picks?\s+up|picked\s+up)\b/i,
+    /\b(never|not|didn'?t|did\s+not|don'?t|do\s+not|doesn'?t|does\s+not|won'?t|wouldn'?t|couldn'?t|could\s+not|can'?t|cannot)\s+(\w+\s+){0,2}?(answer|answered|answers|pick\s+up|picked\s+up|call\s+back|called\s+back|return(ed)?\s+(my|our|the)\s+(calls?|messages?))\b/i,
+    /\b(goes?\s+(straight\s+)?to\s+voicemail|always\s+(busy|engaged)|rings?\s+(out|forever)|no\s+answer|unreachable)\b/i]},
+  {theme:"couldn't book",res:[
+    /\b(couldn'?t|could\s+not|can'?t|cannot|unable\s+to|wasn'?t\s+able\s+to|impossible\s+to|hard\s+to|difficult\s+to|no\s+way\s+to)\s+(\w+\s+){0,2}?(book|schedule|reserve|get\s+an?\s+appointment|make\s+an?\s+appointment|get\s+through|reach|contact)\b/i]},
+  {theme:'no reply',res:[
+    /\b(no|zero|never\s+(got|received|had)\s+(a|any))\s+(reply|replies|response|responses|callback|call[\s-]?back)\b/i,
+    /\b(never|not|didn'?t|did\s+not|doesn'?t|does\s+not|won'?t|wouldn'?t)\s+(\w+\s+){0,2}?(reply|replied|respond|responded|get\s+back\s+to)\b/i,
+    /\b(unresponsive|non[\s-]?responsive|ignored\s+(my|our)|ghosted)\b/i,
+    /(\u0645\u0627\s*(\u064a\u0631\u062f\u0648\u0646|\u064a\u0631\u062f\u0648\u0627|\u064a\u0631\u062f|\u0631\u062f\u0648\u0627|\u0631\u062f|\u062c\u0627\u0648\u0628|\u064a\u062c\u0627\u0648\u0628\u0648\u0646|\u064a\u062c\u0627\u0648\u0628)|\u0644\u0627\s*(\u064a\u0631\u062f\u0648\u0646|\u064a\u0631\u062f|\u064a\u062c\u064a\u0628\u0648\u0646|\u064a\u062c\u064a\u0628)|\u0645\u0627\u0641\u064a\s*\u0631\u062f)/]},
+];
+// Which complaint (if any) a review's text makes. First theme that matches wins.
+export function complaintTheme(text){
+  const t=''+(text||'');
+  if(!t)return null;
+  for(const c of COMPLAINT_THEMES){ if(c.res.some(re=>re.test(t)))return c.theme; }
+  return null;
+}
+// Returns [{type,tag,sev}]. A business with an empty array isn't a lead. `b.reviews` holds the
+// complaint reviews found at search time ({rating,text,theme,complaint:true,...}) — see
+// placeToBusiness(). Closed businesses are never leads.
 export function detectGaps(b){
   const g=[], rc=b.reviewCount||0;
-  if(!b.website) g.push({type:'no_website',tag:'No website',sev:.70});
-  else if(b.siteAudit&&!b.siteAudit.error&&b.siteAudit.issues&&b.siteAudit.issues.length){
-    const n=b.siteAudit.issues.length;
-    g.push({type:'weak_site',tag:b.siteAudit.issues.slice(0,2).join(', ')+(n>2?` +${n-2} more`:''),sev:Math.min(.15+.10*n,.55)});
+  if(b.status && b.status!=='OPERATIONAL')return g;
+  const hits=(b.reviews||[]).filter(r=>r&&r.complaint);
+  if(b.phone && rc>=MIN_REVIEWS && hits.length){
+    const themes=[...new Set(hits.map(h=>h.theme).filter(Boolean))].slice(0,2).join(', ');
+    g.push({type:'unanswered',tag:`${hits.length} review${hits.length===1?'':'s'}: ${themes||'no reply'}`,sev:Math.min(.6+.15*(hits.length-1),1)});
   }
-  if(b.rating && rc>=5 && b.rating<4.0) g.push({type:'low_rating',tag:b.rating+'★',sev:.28});
-  if(rc<15) g.push({type:'few_reviews',tag:rc+' review'+(rc===1?'':'s'),sev:.16});
-  if(b.status && b.status!=='OPERATIONAL')
-    g.push({type:'odd_status',tag:b.status==='CLOSED_TEMPORARILY'?'Temporarily closed':b.status==='CLOSED_PERMANENTLY'?'Permanently closed':'Status unclear',sev:.60});
   return g;
 }
 // How much proven demand a business has: rating quality blended with review volume, 0..1.
@@ -63,8 +84,8 @@ export function scoreFor(b){
 export function gapSummary(b){
   const gaps=b.gaps||detectGaps(b);
   const parts=gaps.map(g=>g.tag);
-  if(!gaps.some(g=>g.type==='low_rating')&&b.rating) parts.push(b.rating+'★');
-  if(!gaps.some(g=>g.type==='few_reviews')) parts.push((b.reviewCount||0)+' reviews');
+  if(b.rating) parts.push(b.rating+'★');
+  parts.push((b.reviewCount||0)+' reviews');
   return parts.join(' · ');
 }
 // Row of coloured pills, one per gap — themed from GAP_TYPES.
@@ -90,6 +111,13 @@ export function inferCategory(types){
   if(/restaurant|cafe|bakery|meal_|bar\b|food/.test(joined))return 'Restaurant';
   if(/car_repair|car_wash|auto/.test(joined))return 'Auto Repair';
   if(/dent/.test(joined))return 'Dental';
+  if(/doctor|clinic|hospital|physiotherap|medical/.test(joined))return 'Medical';
+  if(/veterinar/.test(joined))return 'Veterinary';
+  if(/hair_care|barber|beauty_salon|hair_salon/.test(joined))return 'Hair & Beauty';
+  if(/\bspa\b|massage/.test(joined))return 'Spa';
+  if(/electrician/.test(joined))return 'Electrical';
+  if(/real_estate/.test(joined))return 'Real Estate';
+  if(/lawyer|law_firm|attorney/.test(joined))return 'Legal';
   if(/landscap|lawn/.test(joined))return 'Landscaping';
   if(/gym|fitness/.test(joined))return 'Fitness';
   if(/pet_grooming|pet_groomer/.test(joined))return 'Pet Grooming';
@@ -104,6 +132,17 @@ export function hash(s){let h=0;for(let i=0;i<s.length;i++)h=(h*31+s.charCodeAt(
 
 /* ---- Google Places → internal business shape ---- */
 export function comp(p,type){const c=(p.addressComponents||[]).find(x=>(x.types||[]).includes(type));return c?(c.shortText||c.longText||''):'';}
+// Google returns at most 5 "most relevant" reviews per place, so this only ever sees those.
+function placeComplaints(p){
+  return (p.reviews||[]).map(r=>{
+    const text=((r.text&&r.text.text)||'').trim();
+    const orig=((r.originalText&&r.originalText.text)||'').trim();
+    const rating=r.rating||0;
+    const theme=rating<=4?(complaintTheme(text)||complaintTheme(orig)):null;
+    return theme?{author:(r.authorAttribution&&r.authorAttribution.displayName)||'A customer',rating,
+      time:r.relativePublishTimeDescription||'',text:text||orig,theme,complaint:true}:null;
+  }).filter(Boolean);
+}
 export function placeToBusiness(p,queryCat){
   const loc=p.location||{};
   const num=comp(p,'street_number'), route=comp(p,'route');
@@ -121,14 +160,14 @@ export function placeToBusiness(p,queryCat){
     postal:comp(p,'postal_code')||'',
     street, address:p.formattedAddress||'',
     lat:loc.latitude, lng:loc.longitude,
-    phone:p.nationalPhoneNumber||'',
+    phone:p.nationalPhoneNumber||p.internationalPhoneNumber||'',
     website:!!p.websiteUri, web:p.websiteUri||null,
     rating:p.rating||0, reviewCount:p.userRatingCount||0,
     status:p.businessStatus||'',                  // OPERATIONAL / CLOSED_TEMPORARILY / CLOSED_PERMANENTLY
     value:1400+((p.userRatingCount||0)>150?400:200),
     email:null,                                   // Places doesn't return email — enrich later
     socials:{instagram:null,facebook:null,google:p.googleMapsUri?'Google Business Profile':null},
-    reviews:[],                                   // fetch via Place Details later
+    reviews:placeComplaints(p),                   // only the reviews that complain about replies / booking
     hot:false
   };
   b.gaps=detectGaps(b);

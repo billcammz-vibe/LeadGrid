@@ -6,6 +6,7 @@ import {REVIEW_THEMES,stageOf} from './state.js';
 import {apiFetch} from './sb.js';
 import {addHistory} from './history.js';
 import {ic} from './icons.js';
+import {hunterSender} from './hunter.js';
 
 let curLead=null, aiSeed=0, emailVariant=0;
 export const setCurLead=v=>{curLead=v;};
@@ -19,7 +20,11 @@ function genWhy(l,seed){
   const open=seed%2
     ? `${l.name} is ${ratingWord(l.rating)==='up-and-coming'?'an':'a'} ${ratingWord(l.rating)} ${cat} in ${l.city} — ${l.rating}★ across ${l.reviewCount} Google reviews.`
     : `With ${l.reviewCount} reviews at ${l.rating}★, ${l.name} is one of the more established ${cat}s in ${l.city}.`;
-  const gap=l.website
+  const un=(l.gaps||[]).find(g=>g.type==='unanswered');
+  const nComp=(l.reviews||[]).filter(r=>r&&r.complaint).length;
+  const gap=un
+    ? `${nComp} of the Google reviews we can see say customers got no reply, nobody answered, or they couldn't book. With ${l.reviewCount} reviews they clearly have demand — enquiries they already attract are slipping away, which fast replies and easy online booking would win back.`
+    : l.website
     ? `They already have a website, but there are quick wins in turning Google traffic into booked customers — follow-up automation and review generation especially.`
     : `Critically, they have no website. Customers finding them on Google have no way to book or learn more, so they're leaking business to competitors who show up polished — exactly the gap you close.`;
   const fit=`At a sales score of ${l.score}, this is ${priorityWord(l.score)} target${l.hot?', and it’s already flagged hot':''}.`;
@@ -60,11 +65,12 @@ export function renderAI(l,seed){
 }
 
 /* ---- Claude-drafted outreach email ---- */
-const ANGLE_LABEL={no_website:'no website',weak_site:'weak site',few_reviews:'few reviews',low_rating:'low rating',odd_status:'listing status'};
+const ANGLE_LABEL={unanswered:'unanswered complaints',no_website:'no website',weak_site:'weak site',few_reviews:'few reviews',low_rating:'low rating',odd_status:'listing status'};
 function leadPayload(l){
   return {name:l.name,cat:l.cat,city:l.city,province:l.province,rating:l.rating,
     reviewCount:l.reviewCount,website:!!l.website,web:l.web,gaps:l.gaps||[],gapSummary:l.gapSummary||'',
-    siteAuditIssues:(l.siteAudit&&l.siteAudit.issues)||[]};
+    siteAuditIssues:(l.siteAudit&&l.siteAudit.issues)||[],
+    complaints:(l.reviews||[]).filter(r=>r&&r.complaint).slice(0,3).map(r=>r.text)};
 }
 async function loadEmail(l){
   const box=$('#ai-email'); if(!box)return;
@@ -72,7 +78,7 @@ async function loadEmail(l){
   try{
     const res=await apiFetch('/api/generate-email',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({lead:leadPayload(l),variant:emailVariant})
+      body:JSON.stringify({lead:leadPayload(l),variant:emailVariant,sender:hunterSender()})
     });
     const data=await res.json().catch(()=>({}));
     if(!res.ok)throw new Error(data.error||(res.status+' '+res.statusText));

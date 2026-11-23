@@ -12,7 +12,7 @@ export function renderDash(){
   const wonVal=won.reduce((s,l)=>s+l.value,0);
   const closed=ls.filter(l=>['won','lost'].includes(l.stage)).length;
   const conv=closed?Math.round(won.length/closed*100):0;
-  const noWww=ls.filter(l=>!l.website).length;
+  const noWww=ls.filter(l=>(l.gaps||[]).some(g=>g.type==='unanswered')).length;
 
   const counts=STAGES.map(s=>({s,n:ls.filter(l=>l.stage===s.id).length}));
   const maxc=Math.max(...counts.map(c=>c.n),1);
@@ -30,7 +30,7 @@ export function renderDash(){
       <div class="kpi"><div class="lab">Open pipeline</div><div class="val">${money(pipeVal)}</div></div>
       <div class="kpi"><div class="lab">Won this month</div><div class="val">${money(wonVal)} <small>/ ${won.length} deals</small></div></div>
       <div class="kpi"><div class="lab">Win rate</div><div class="val">${conv}%</div><div class="delta ${conv>=50?'up':'down'}">${conv>=50?'▲ healthy':'▼ needs work'}</div></div>
-      <div class="kpi"><div class="lab">No-website leads</div><div class="val">${noWww}</div><div class="delta up">high-intent</div></div>
+      <div class="kpi"><div class="lab">Unanswered-complaint leads</div><div class="val">${noWww}</div><div class="delta up">high-intent</div></div>
     </div>
     <div class="grid2">
       <div class="card"><h3>Pipeline by stage <span class="link" onclick="go('crm')">Open CRM →</span></h3>

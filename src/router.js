@@ -6,15 +6,16 @@ import {renderCRM} from './crm.js';
 import {renderFinder} from './finder.js';
 import {renderCal} from './calendar.js';
 import {renderReps} from './reps.js';
+import {renderHunter} from './hunter.js';
 
 export function go(view){
   state.view=view;
   document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active',v.dataset.view===view));
   document.querySelectorAll('#nav a').forEach(a=>a.classList.toggle('active',a.dataset.view===view));
-  $('#crumb').textContent={dashboard:'Dashboard',crm:'CRM',finder:'Lead Finder',calendar:'Calendar',reps:'Sales Reps'}[view];
+  $('#crumb').textContent={dashboard:'Dashboard',crm:'CRM',finder:'Lead Finder',hunter:'Client Hunter',calendar:'Calendar',reps:'Sales Reps'}[view];
   render(view);
 }
-export function render(view){({dashboard:renderDash,crm:renderCRM,finder:renderFinder,calendar:renderCal,reps:renderReps}[view])();updateBadges();}
+export function render(view){({dashboard:renderDash,crm:renderCRM,finder:renderFinder,hunter:renderHunter,calendar:renderCal,reps:renderReps}[view])();updateBadges();}
 export function updateBadges(){$('#nb-crm').textContent=LEADS.length;}
 
 export function renderRepFilter(){

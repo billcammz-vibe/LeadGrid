@@ -18,7 +18,7 @@ const SENDER = {
 // Fallback ranking when a gap arrives without its own `sev` (older/hand-built callers) — mirrors
 // detectGaps() in src/helpers.js. Prefer the gap's own `sev` when present: weak_site's severity
 // varies with how many site issues were found, so a static table can't rank it accurately.
-const GAP_SEV = { no_website: 0.70, odd_status: 0.60, weak_site: 0.40, low_rating: 0.28, few_reviews: 0.16 };
+const GAP_SEV = { unanswered: 0.60, no_website: 0.70, odd_status: 0.60, weak_site: 0.40, low_rating: 0.28, few_reviews: 0.16 };
 
 // A distinct pitch angle per primary gap. The low_rating angle is deliberately tactful — never
 // criticise their rating. weak_site references the specific issues passed in `facts` rather than
@@ -45,14 +45,39 @@ const ANGLES = {
     'Primary gap: GOOGLE LISTING STATUS PROBLEM (marked closed / unclear). Lead with — customers ' +
     'searching for them may think they have shut down; fixing the listing and adding a basic ' +
     'always-on site recovers that lost traffic.',
+  unanswered:
+    'Primary gap: CUSTOMERS CAN\'T GET THROUGH. Some of their public Google reviews (summarised under ' +
+    '"What reviewers say" below) say people got no reply, nobody answered, or they could not book. Lead ' +
+    'with that — tactfully, as an opportunity and never as criticism: the review count shows they have ' +
+    'real demand, and some of it slips away because enquiries go unanswered. Paraphrase the issue in ' +
+    'your own words; never quote a reviewer verbatim or name them. Offer instant replies and easy ' +
+    'booking (follow-up automation plus online booking). Make the single ask.',
+  hunter:
+    'Reason for reaching out: a specific public signal found by Client Hunter, described under ' +
+    '"Flagged for" below. Lead with that exact thing — do not generalise it, and do not invent ' +
+    'details beyond it. Offer one useful idea for free that relates to it, then make the single ask.',
 };
+
+// The saved Client Hunter brief can override who the email is from. Only plain, length-capped
+// strings are accepted; anything else falls back to the defaults above.
+function senderFrom(override) {
+  const clean = (v, d) => (typeof v === 'string' && v.trim() ? v.trim().slice(0, 80) : d);
+  const o = override && typeof override === 'object' ? override : {};
+  return {
+    name: clean(o.name, SENDER.name),
+    company: clean(o.company, SENDER.company),
+    site: clean(o.site, SENDER.site),
+    city: clean(o.city, SENDER.city),
+  };
+}
 
 function primaryGap(gaps) {
   if (!Array.isArray(gaps) || !gaps.length) return null;
   return [...gaps].sort((a, b) => (b.sev ?? GAP_SEV[b.type] ?? 0) - (a.sev ?? GAP_SEV[a.type] ?? 0))[0];
 }
 
-async function generateEmailDraft({ lead, variant = 0 } = {}) {
+async function generateEmailDraft({ lead, variant = 0, sender } = {}) {
+  const SENDER_ = senderFrom(sender);
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) throw Object.assign(new Error('ANTHROPIC_API_KEY not configured on the server'), { status: 500 });
   if (!lead || !lead.name) throw Object.assign(new Error('Missing lead'), { status: 400 });
@@ -69,11 +94,13 @@ async function generateEmailDraft({ lead, variant = 0 } = {}) {
       (lead.reviewCount != null ? ` from ${lead.reviewCount} reviews` : ''),
     `Website: ${lead.website ? (lead.web || 'yes') : 'none'}`,
     lead.gapSummary ? `Flagged for: ${lead.gapSummary}` : null,
+    Array.isArray(lead.complaints) && lead.complaints.length
+      ? `What reviewers say (paraphrase, never quote or name them): ${lead.complaints.slice(0, 3).map((c) => String(c).slice(0, 220)).join(' | ')}` : null,
     lead.siteAuditIssues && lead.siteAuditIssues.length ? `Website issues found: ${lead.siteAuditIssues.join(', ')}` : null,
   ].filter(Boolean).join('\n');
 
   const system =
-    `You write short, specific B2B outreach emails for ${SENDER.company}, a ${SENDER.city} digital ` +
+    `You write short, specific B2B outreach emails for ${SENDER_.company}, a ${SENDER_.city} digital ` +
     `agency that builds booking-ready websites and review / follow-up automation for local ` +
     `businesses. You are writing to a business found on Google Places.\n\n` +
     `RULES:\n` +
@@ -84,7 +111,7 @@ async function generateEmailDraft({ lead, variant = 0 } = {}) {
     `- Make exactly one ask: either a quick 10-minute call this week OR a free mockup — never both.\n` +
     `- Never invent facts, names, numbers, or claims. Use only what is given below.\n` +
     `- No "I hope this email finds you well", no hype words ("game-changer", "revolutionary"), no emoji.\n` +
-    `- Sign off exactly as:\n${SENDER.name}\n${SENDER.company}\n${SENDER.site}\n\n` +
+    `- Sign off exactly as:\n${SENDER_.name}\n${SENDER_.company}\n${SENDER_.site}\n\n` +
     `ANGLE FOR THIS LEAD:\n${angle}\n\n` +
     `OUTPUT FORMAT — respond with exactly this and nothing else:\n` +
     `Subject: <specific subject line, under 60 characters>\n` +

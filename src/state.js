@@ -14,33 +14,49 @@ export const stageOf=id=>STAGES.find(s=>s.id===id)||STAGES[0];
 // The gaps Lead Finder flags a business for. `label` is the filter-chip text; `color` themes the
 // per-row pills. Detection logic + per-gap severity weights live in detectGaps() (helpers.js).
 export const GAP_TYPES=[
+  {type:'unanswered',label:'Unanswered complaints',color:'#F5A524'}, // reviews say no reply / couldn't book / never answered — the Finder's only flag now
+  // The types below are no longer produced by the Finder but are kept so leads saved earlier still render.
   {type:'no_website',label:'No website',color:'#EF4444'},
   {type:'weak_site',label:'Weak site',color:'#F5A524'},
   {type:'low_rating',label:'Low rating',color:'#F5A524'},
   {type:'few_reviews',label:'Few reviews',color:'#F5A524'},
   {type:'odd_status',label:'Status issue',color:'#EF4444'},
+  {type:'hunter',label:'Client Hunter',color:'#A855F7'}, // a public signal found by Client Hunter (src/hunter.js)
 ];
 export const gapOf=type=>GAP_TYPES.find(g=>g.type===type);
 
-// Full vertical set — kept intact (and still backs CAT_QUERY_TERMS/REVIEW_THEMES below) for when
-// this broadens past one vertical. Order sets both the results-list order and which category wins
-// when a place matches more than one query — Nail Salon is deliberately last so it never gets
-// priority over the others.
-export const ALL_CATS=['HVAC','Plumbing','Restaurant','Auto Repair','Dental','Landscaping','Fitness','Pet Grooming','Nail Salon'];
-// Active search scope — dental only for now (2026-09-15, per the business owner). Lead Finder
-// searches every category in this list behind the scenes (no user-picked type) and labels each
-// result from what Google actually returns — see CAT_QUERY_TERMS / inferCategory below. Swap
-// back to ALL_CATS (or a bigger subset) to broaden.
-export const CATS=['Dental'];
+// Business types the Lead Finder searches when no specific type is typed in. Each is one Google
+// Places text query ("<term> in <area>"), so every entry costs one search call per run — trim the
+// list to cut cost, add to it to widen coverage. The user can also type any other type into the
+// Finder's "Business type" box (e.g. "car rental"), which searches just that.
+// A result's category label comes from Google's own place types (inferCategory in helpers.js),
+// falling back to the label here for whichever query found it.
+export const SEARCH_TYPES=[
+  {cat:'Dental',term:'dentists'},
+  {cat:'Medical',term:'medical clinics'},
+  {cat:'Veterinary',term:'veterinary clinics'},
+  {cat:'Hair & Beauty',term:'hair salons and barbershops'},
+  {cat:'Nail Salon',term:'nail salons'},
+  {cat:'Spa',term:'spas and beauty clinics'},
+  {cat:'Restaurant',term:'restaurants'},
+  {cat:'Cafe',term:'cafes'},
+  {cat:'Auto Repair',term:'auto repair shops'},
+  {cat:'Fitness',term:'gyms and fitness studios'},
+  {cat:'Plumbing',term:'plumbers'},
+  {cat:'HVAC',term:'HVAC contractors'},
+  {cat:'Electrical',term:'electricians'},
+  {cat:'Cleaning',term:'cleaning services'},
+  {cat:'Landscaping',term:'landscaping companies'},
+  {cat:'Real Estate',term:'real estate agencies'},
+  {cat:'Legal',term:'law firms'},
+  {cat:'Pet Grooming',term:'pet groomers'},
+];
 // Area autosuggest — not a restriction (the field is free text; any area works, anywhere Google
 // Places has data), just a convenience dropdown. Spans every region this app is actively used in.
 export const AREA_SUGGESTIONS=[
   'Mississauga, ON','Oakville, ON','North York, ON','Vaughan, ON','Scarborough, ON','Toronto, ON','Etobicoke, ON','Brampton, ON','Richmond Hill, ON','Markham, ON',
   'Muscat, Oman','Salalah, Oman','Sohar, Oman','Nizwa, Oman','Sur, Oman','Rustaq, Oman',
 ];
-export const CAT_QUERY_TERMS={'Nail Salon':'nail salons','HVAC':'HVAC contractors','Plumbing':'plumbers',
-  'Restaurant':'restaurants','Auto Repair':'auto repair shops','Dental':'dentists',
-  'Landscaping':'landscaping companies','Fitness':'gyms','Pet Grooming':'pet groomers'};
 
 // Review themes for the "what their reviews say" heuristic (src/outreach.js genReview). Category-
 // based, not region-based — applies the same regardless of where the business is.
@@ -55,7 +71,7 @@ export const REVIEW_THEMES={
   'Fitness':{pros:['motivating trainers','clean equipment'],cons:['peak-hour crowding']},
   'Pet Grooming':{pros:['gentle with anxious pets','great haircuts','clean, calm space'],cons:['limited weekend slots','booking can be slow']}
 };
-export const AI_SUGG=['Top leads to call today','Which rep is underloaded?','Summarize an area','No-website opportunities'];
+export const AI_SUGG=['Top leads to call today','Which rep is underloaded?','Summarize an area','Unanswered-complaint leads'];
 
 /* ---- live collections (mutated in place, never reassigned) ---- */
 export const LEADS=[];

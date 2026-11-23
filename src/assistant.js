@@ -28,18 +28,18 @@ function aiAnswer(q){
     const named=cities.filter(c=>q.includes(c.toLowerCase()));
     const targetCities=named.length?named:cities; // no city named — summarize everything you've got
     const area=ls.filter(l=>targetCities.includes(l.city));
-    const val=area.reduce((s,l)=>s+l.value,0);const noweb=area.filter(l=>!l.website).length;
+    const val=area.reduce((s,l)=>s+l.value,0);const noweb=area.filter(l=>(l.gaps||[]).some(g=>g.type==='unanswered')).length;
     const load=REPS.map(r=>({r,n:area.filter(l=>l.rep===r.id).length})).filter(x=>x.n>0).sort((a,b)=>b.n-a.n);
     const closest=area.filter(l=>l.stage==='replied').sort((a,b)=>b.value-a.value)[0];
-    return `<b>${targetCities.join(' + ')}</b><div class="mrow2"><span>Leads</span><span>${area.length}</span></div><div class="mrow2"><span>Pipeline</span><span>${money(val)}</span></div><div class="mrow2"><span>No-website</span><span>${noweb}</span></div>${load.length?`<div class="mrow2"><span>Most leads here</span><span>${load[0].r.name}</span></div>`:''}<div style="margin-top:8px;color:var(--muted)">${closest?closest.name+' has replied — closest to closing.':'Nobody has replied here yet.'}</div>`;
+    return `<b>${targetCities.join(' + ')}</b><div class="mrow2"><span>Leads</span><span>${area.length}</span></div><div class="mrow2"><span>Pipeline</span><span>${money(val)}</span></div><div class="mrow2"><span>Unanswered complaints</span><span>${noweb}</span></div>${load.length?`<div class="mrow2"><span>Most leads here</span><span>${load[0].r.name}</span></div>`:''}<div style="margin-top:8px;color:var(--muted)">${closest?closest.name+' has replied — closest to closing.':'Nobody has replied here yet.'}</div>`;
   }
-  if(q.includes('website')||q.includes('no-website')||q.includes('opportun')){
-    const nw=ls.filter(l=>!l.website&&!['won','lost'].includes(l.stage)).sort((a,b)=>b.value-a.value).slice(0,5);
-    return `<b>No-website leads</b> — your warmest pitch (you can lead with a mockup):${nw.map(l=>`<div class="mrow2"><span>${l.name}</span><span>${money(l.value)}</span></div>`).join('')}`;
+  if(q.includes('complaint')||q.includes('unanswered')||q.includes('website')||q.includes('opportun')){
+    const nw=ls.filter(l=>(l.gaps||[]).some(g=>g.type==='unanswered')&&!['won','lost'].includes(l.stage)).sort((a,b)=>b.value-a.value).slice(0,5);
+    return `<b>Unanswered-complaint leads</b> — reviews say customers couldn't get a reply or book; lead with fast replies + booking:${nw.map(l=>`<div class="mrow2"><span>${l.name}</span><span>${money(l.value)}</span></div>`).join('')}`;
   }
   if(q.includes('total')||q.includes('pipeline')||q.includes('value')){
     const open=ls.filter(l=>!['won','lost'].includes(l.stage));const v=open.reduce((s,l)=>s+l.value,0);
     return `Open pipeline right now is <b>${money(v)}</b> across ${open.length} leads. Won this month adds ${money(ls.filter(l=>l.stage==='won').reduce((s,l)=>s+l.value,0))}.`;
   }
-  return `I can help with: who to <b>call today</b>, <b>rep capacity</b>, an <b>area summary</b>, or <b>no-website</b> opportunities. Try one of the chips below.`;
+  return `I can help with: who to <b>call today</b>, <b>rep capacity</b>, an <b>area summary</b>, or <b>unanswered-complaint</b> opportunities. Try one of the chips below.`;
 }
