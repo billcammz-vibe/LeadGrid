@@ -1,6 +1,6 @@
 // AI outreach layer. The "Why reach out" blurb and review summary are still local heuristics;
 // the outreach email is drafted by Claude via /api/generate-email (key stays server-side — see
-// api/lib/generateEmail.js). Drafts land in editable fields; nothing sends automatically.
+// server/generateEmail.js). Drafts land in editable fields; nothing sends automatically.
 import {$,leadById,esc,escAttr} from './helpers.js';
 import {REVIEW_THEMES,stageOf} from './state.js';
 import {apiFetch} from './sb.js';

@@ -14,7 +14,7 @@ export function dbError(msg){
 }
 
 // Attaches the current session's access token so the api/* proxies (which spend real API
-// budget) can verify the caller is actually logged in — see api/lib/requireAuth.js.
+// budget) can verify the caller is actually logged in — see server/requireAuth.js.
 export async function apiFetch(url,opts){
   opts=opts||{};
   const{data}=await sb.auth.getSession();

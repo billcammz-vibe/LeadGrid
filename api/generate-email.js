@@ -1,6 +1,6 @@
-const { generateEmailDraft } = require('./lib/generateEmail');
-const { requireAuth } = require('./lib/requireAuth');
-const { rateLimit } = require('./lib/cache');
+const { generateEmailDraft } = require('../server/generateEmail');
+const { requireAuth } = require('../server/requireAuth');
+const { rateLimit } = require('../server/cache');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {

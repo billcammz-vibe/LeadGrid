@@ -1,6 +1,6 @@
-const { fetchSocialsFor } = require('./lib/extractSocials');
-const { requireAuth } = require('./lib/requireAuth');
-const { rateLimit } = require('./lib/cache');
+const { fetchSocialsFor } = require('../server/extractSocials');
+const { requireAuth } = require('../server/requireAuth');
+const { rateLimit } = require('../server/cache');
 
 module.exports = async (req, res) => {
   let user;

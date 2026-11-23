@@ -1,6 +1,6 @@
-const { geocodeAddress } = require('./lib/geocode');
-const { requireAuth } = require('./lib/requireAuth');
-const { rateLimit } = require('./lib/cache');
+const { geocodeAddress } = require('../server/geocode');
+const { requireAuth } = require('../server/requireAuth');
+const { rateLimit } = require('../server/cache');
 
 module.exports = async (req, res) => {
   let user;

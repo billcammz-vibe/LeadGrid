@@ -1,5 +1,5 @@
 // Client Hunter view: a team of 12 Claudes finds the next paying client. The browser drives the
-// pipeline one stage per request to /api/hunt (see api/lib/hunter.js for what each stage does):
+// pipeline one stage per request to /api/hunt (see server/hunter.js for what each stage does):
 //   8 scouts search the live web -> the Teardown opens every proof link and removes weak leads ->
 //   3 judges score survivors -> all 12 vote alone -> all 12 final-check -> drafts for the top 3.
 // Nothing is ever sent: results are drafts the user copies. Winners can be added to the CRM.
@@ -31,7 +31,7 @@ export async function loadHunterBrief(){
     console.warn('[hunter] could not load saved brief:',err.message);
   }
 }
-// Who outreach emails are from — comes from the saved brief (see api/lib/generateEmail.js).
+// Who outreach emails are from — comes from the saved brief (see server/generateEmail.js).
 export const hunterSender=()=>({name:H.brief.senderName,company:H.brief.senderCompany,site:H.brief.senderSite,city:H.brief.senderCity});
 
 const FIELDS={offer:'hb-offer',price:'hb-price',idealClient:'hb-ideal',area:'hb-area',proof:'hb-proof',

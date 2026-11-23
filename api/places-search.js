@@ -1,6 +1,6 @@
-const { searchPlacesText } = require('./lib/placesSearch');
-const { requireAuth } = require('./lib/requireAuth');
-const { rateLimit } = require('./lib/cache');
+const { searchPlacesText } = require('../server/placesSearch');
+const { requireAuth } = require('../server/requireAuth');
+const { rateLimit } = require('../server/cache');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {

@@ -1,6 +1,6 @@
-const { runHuntStage } = require('./lib/hunter');
-const { requireAuth } = require('./lib/requireAuth');
-const { rateLimit } = require('./lib/cache');
+const { runHuntStage } = require('../server/hunter');
+const { requireAuth } = require('../server/requireAuth');
+const { rateLimit } = require('../server/cache');
 
 // Client Hunter: one stage of the pipeline per call (see api/lib/hunter.js). The browser drives
 // the stages in order, so each call stays inside the serverless time limit.

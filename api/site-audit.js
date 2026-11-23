@@ -1,6 +1,6 @@
-const { auditSite } = require('./lib/siteAudit');
-const { requireAuth } = require('./lib/requireAuth');
-const { rateLimit } = require('./lib/cache');
+const { auditSite } = require('../server/siteAudit');
+const { requireAuth } = require('../server/requireAuth');
+const { rateLimit } = require('../server/cache');
 
 module.exports = async (req, res) => {
   if (req.method !== 'POST') {

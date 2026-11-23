@@ -1,12 +1,12 @@
 import { defineConfig, loadEnv } from 'vite';
-import { fetchSocialsFor } from './api/lib/extractSocials.js';
-import { searchPlacesText } from './api/lib/placesSearch.js';
-import { geocodeAddress } from './api/lib/geocode.js';
-import { generateEmailDraft } from './api/lib/generateEmail.js';
-import { auditSite } from './api/lib/siteAudit.js';
-import { runHuntStage } from './api/lib/hunter.js';
-import { requireAuth } from './api/lib/requireAuth.js';
-import { rateLimit } from './api/lib/cache.js';
+import { fetchSocialsFor } from './server/extractSocials.js';
+import { searchPlacesText } from './server/placesSearch.js';
+import { geocodeAddress } from './server/geocode.js';
+import { generateEmailDraft } from './server/generateEmail.js';
+import { auditSite } from './server/siteAudit.js';
+import { runHuntStage } from './server/hunter.js';
+import { requireAuth } from './server/requireAuth.js';
+import { rateLimit } from './server/cache.js';
 
 function readJsonBody(req) {
   return new Promise((resolve) => {

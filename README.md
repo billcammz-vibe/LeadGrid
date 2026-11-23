@@ -52,5 +52,6 @@ for `npm run dev`). Set the same env vars in the Vercel project.
   `dashboard.js`, plus `router.js`, `data.js` (Supabase layer), `history.js` (activity log),
   `sb.js`, `helpers.js`, `icons.js`
 - `api/` — auth-gated proxies: `places-search.js`, `geocode.js`, `socials.js`, `generate-email.js`,
-  `site-audit.js` (+ `lib/`)
+  `site-audit.js`, `hunt.js`
+- `server/` — the shared server-side code those handlers use (Places, Claude email drafting, Client Hunter, auth, caching). It lives outside `api/` on purpose: Vercel's Hobby plan allows 12 serverless functions and counts every `.js` file under `api/`
 - `supabase/` — `schema.sql` and incremental `migrations/`
