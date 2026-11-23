@@ -98,9 +98,9 @@ export const alreadyInCRM=sourceId=>addedProspects.has(sourceId)||LEADS.some(l=>
 // Insert a new lead, tolerating a race where the same sourceId was inserted by another session/
 // device: the DB's unique index on source_id rejects the duplicate (code 23505), which just means
 // "already in CRM" — not an error worth alarming the user about.
-export function saveNewLead(nl,sourceId){
+export function saveNewLead(nl,sourceId,origin){
   sb.from('leads').insert(clientLeadToDb(nl)).then(({error})=>{
-    if(!error){addHistory(nl.id,'created','Added from Lead Finder'+(nl.gapSummary?' — '+nl.gapSummary:''),{});return;}
+    if(!error){addHistory(nl.id,'created',origin||('Added from Lead Finder'+(nl.gapSummary?' — '+nl.gapSummary:'')),{});return;}
     if(error.code==='23505'){addedProspects.add(sourceId);return;}
     dbError('Failed to save lead — '+error.message);
   });

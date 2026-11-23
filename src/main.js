@@ -16,6 +16,7 @@ import {regenAI,regenEmail,sendGmail,sendDefault,copyEmail} from './outreach.js'
 import {openMeetingModal,onMeetLeadChange,closeMeetingModal,saveMeetingModal,askDeleteMeeting} from './calendar.js';
 import {openRepModal,closeRepModal,saveRepModal,deleteRepFromModal} from './reps.js';
 import {openAI,closeAI,aiSend} from './assistant.js';
+import {loadHunterBrief,saveHunterBrief,startHunt,stopHunt,redraft,openHunt,addHunterLead,copyHunterMessage} from './hunter.js';
 
 /* ---- sidebar collapse (desktop) ---- */
 // When collapsed, the sidebar shrinks to an icon-only rail; the label text is moved to each nav
@@ -48,6 +49,7 @@ Object.assign(window,{
   renderCal,openMeetingModal,onMeetLeadChange,closeMeetingModal,saveMeetingModal,askDeleteMeeting,
   openRepModal,closeRepModal,saveRepModal,deleteRepFromModal,
   openAI,closeAI,aiSend,
+  saveHunterBrief,startHunt,stopHunt,redraft,openHunt,addHunterLead,copyHunterMessage,
   logout,doLogin,toggleNav,
 });
 
@@ -111,6 +113,7 @@ sb.auth.onAuthStateChange(async(event,session)=>{
     _appReady=true;
     hideLogin();
     await loadAllData();
+    loadHunterBrief(); // saved Client Hunter brief (also supplies the outreach email sender)
     renderRepFilter();
     go('dashboard');
   }else{

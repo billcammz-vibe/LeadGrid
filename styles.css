@@ -507,3 +507,34 @@
     #nav a span:not(.badge){display:none} /* icon-only tabs on very small screens */
     #nav a svg{width:22px;height:22px}
   }
+
+  /* ---- Client Hunter ---- */
+  .hinput{width:100%;background:var(--ink);border:1px solid var(--line);border-radius:9px;padding:10px 12px;color:var(--text);font-size:13px}
+  .hinput:focus{outline:none;border-color:var(--blue)}
+  .hsteps{display:flex;flex-direction:column;gap:10px}
+  .hstep{display:flex;gap:14px;align-items:flex-start;font-size:13px;flex-wrap:wrap}
+  .hstep .hk,.hrow2 .hk{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--dim);font-weight:600;min-width:112px;flex:none}
+  .hstep .hk small{text-transform:none;letter-spacing:0}
+  .hchips{display:flex;gap:6px;flex-wrap:wrap;flex:1;min-width:0}
+  .hchip{font-size:12px;padding:4px 10px;border-radius:20px;border:1px solid var(--line);color:var(--muted);background:var(--panel-2)}
+  .hchip.run{border-color:var(--blue);color:var(--text)}
+  .hchip.done{border-color:rgba(34,197,94,.4);color:var(--text)}
+  .hchip.fail{border-color:rgba(239,68,68,.45);color:#F87171}
+  .hlive{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:13px}
+  .hspin{width:14px;height:14px;border-radius:50%;border:2px solid var(--line);border-top-color:var(--blue);animation:hspin .8s linear infinite;flex:none}
+  @keyframes hspin{to{transform:rotate(360deg)}}
+  .hnotes{margin-top:12px;font-size:12px;color:var(--muted);line-height:1.6}
+  .hcard{display:flex;gap:16px;margin-bottom:14px}
+  .hrank{width:34px;height:34px;border-radius:50%;background:var(--blue);color:#fff;font-family:var(--disp);font-weight:600;display:flex;align-items:center;justify-content:center;flex:none}
+  .hrow2{display:flex;gap:14px;font-size:13px;margin-top:9px;align-items:flex-start;flex-wrap:wrap}
+  .hrow2>*:last-child{flex:1;min-width:200px}
+  .hlist{margin:0;padding-left:16px;line-height:1.6}
+  .hmsg{background:var(--ink);border:1px solid var(--line);border-radius:10px;padding:12px 14px;white-space:pre-wrap;line-height:1.55}
+  .hrow{display:flex;gap:14px;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line-soft);cursor:pointer;font-size:13px}
+  .hrow:last-child{border-bottom:none}
+  .hrow:hover{background:var(--panel-2)}
+  @media (max-width:640px){.hcard{flex-direction:column;gap:10px}.hstep .hk,.hrow2 .hk{min-width:0;width:100%}}
+
+  /* Lead Finder: the review snippet that got a business flagged */
+  .fquote{margin-top:6px;font-size:12px;line-height:1.45;color:var(--muted);max-width:420px;font-style:italic}
+  .fquote span{color:#F5A524;font-style:normal;letter-spacing:1px;font-size:11px;white-space:nowrap}
